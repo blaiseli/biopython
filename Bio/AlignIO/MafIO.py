@@ -303,7 +303,7 @@ class MafIndex(object):
 
             filename = self._con.execute(
                 "SELECT value FROM meta_data WHERE key = 'filename'").fetchone()[0]
-            if filename != self._maf_file:
+            if os.path.basename(filename) != os.path.basename(self._maf_file):
                 raise ValueError("Index uses a different file (%s != %s)"
                                  % (filename, self._maf_file))
 
