@@ -276,18 +276,7 @@ class MafIndex(object):
 
             filename = self._con.execute(
                 "SELECT value FROM meta_data WHERE key = 'filename'").fetchone()[0]
-            # Compute absolute path of the original maf file
-            if os.path.isabs(filename):
-                # It was already stored as absolute
-                tmp_mafpath = filename
-            else:
-                # It should otherwise have been stored as relative to the index
-                # Would be stored with Unix / path separator, so convert
-                # it to the local OS path separator here:
-                tmp_mafpath = os.path.join(
-                    self._relative_path, filename.replace("/", os.path.sep))
-            if tmp_mafpath != os.path.abspath(self._maf_file):
-                # Original and given absolute paths differ.
+            if os.path.basename(filename) != os.path.basename(self._maf_file):
                 raise ValueError("Index uses a different file (%s != %s)"
                                  % (filename, self._maf_file))
 
