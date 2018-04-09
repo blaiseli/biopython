@@ -25,7 +25,6 @@ from ._base import _BaseHSP
 
 
 class HSP(_BaseHSP):
-
     """Class representing high-scoring region(s) between query and hit.
 
     HSP (high-scoring pair) objects are contained by Hit objects (see Hit).
@@ -246,12 +245,13 @@ class HSP(_BaseHSP):
     .. [1] may be used in HSPs with multiple fragments
 
     """
+
     # attributes we don't want to transfer when creating a new Hit class
     # from this one
     _NON_STICKY_ATTRS = ('_items', )
 
     def __init__(self, fragments=()):
-        """Initializes an HSP object.
+        """Initialize an HSP object.
 
         :param fragments: fragments contained in the HSP object
         :type fragments: iterable yielding HSPFragment
@@ -629,7 +629,6 @@ class HSP(_BaseHSP):
 
 
 class HSPFragment(_BaseHSP):
-
     """Class representing a contiguous alignment of hit-query sequence.
 
     HSPFragment forms the core of any parsed search output file. Depending on
@@ -682,7 +681,7 @@ class HSPFragment(_BaseHSP):
 
     def __init__(self, hit_id='<unknown id>', query_id='<unknown id>',
             hit=None, query=None, alphabet=single_letter_alphabet):
-
+        """Initialize the class."""
         self._alphabet = alphabet
         self.aln_annotation = {}
 
@@ -793,7 +792,7 @@ class HSPFragment(_BaseHSP):
 
     # sequence properties #
     def _set_seq(self, seq, seq_type):
-        """Checks the given sequence for attribute setting
+        """Check the given sequence for attribute setting (PRIVATE).
 
         :param seq: sequence to check
         :type seq: string or SeqRecord

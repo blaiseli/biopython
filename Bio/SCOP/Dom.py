@@ -7,7 +7,7 @@
 #     Interface and comments modified to reflect changes to the SCOP
 #     module, and to SCOP itself.
 
-""" Handle the SCOP DOMain file.
+"""Handle the SCOP DOMain file.
 
 The DOM file has been officially deprecated. For more information see
 the SCOP"release notes.":http://scop.berkeley.edu/release-notes-1.55.html
@@ -22,12 +22,14 @@ class Record(object):
     """Holds information for one SCOP domain.
 
     Attribues:
-
      - sid - The SCOP ID of the entry, e.g. d1anu1
      - residues - The domain definition as a Residues object
      - hierarchy - A string specifying where this domain is in the hierarchy.
+
     """
+
     def __init__(self, line=None):
+        """Initialize the class."""
         self.sid = ''
         self.residues = []
         self.hierarchy = ''
@@ -35,7 +37,7 @@ class Record(object):
             self._process(line)
 
     def _process(self, line):
-        """Parses DOM records.
+        """Parse DOM records.
 
         Records consist of 4 tab deliminated fields;
         sid, pdbid, residues, hierarchy
@@ -64,11 +66,11 @@ class Record(object):
 
 
 def parse(handle):
-    """Iterates over a DOM file as a Dom record for each line.
+    """Iterate over a DOM file as a Dom record for each line.
 
     Arguments:
-
      - handle -- file-like object.
+
     """
     for line in handle:
         if line.startswith('#'):

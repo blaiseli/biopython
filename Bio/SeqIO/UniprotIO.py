@@ -8,12 +8,12 @@
 
 """Bio.SeqIO support for the "uniprot-xml" file format.
 
-See also:
-
+See Also:
 http://www.uniprot.org
 
 The UniProt XML format essentially replaces the old plain text file format
 originally introduced by SwissProt ("swiss" format in Bio.SeqIO).
+
 """
 import sys
 
@@ -40,7 +40,7 @@ REFERENCE_JOURNAL = "%(name)s %(volume)s:%(first)s-%(last)s(%(pub_date)s)"
 
 
 def UniprotIterator(handle, alphabet=Alphabet.ProteinAlphabet(), return_raw_comments=False):
-    """Generator function to parse UniProt XML as SeqRecord objects.
+    """Iterate over UniProt XML as SeqRecord objects.
 
     parses an XML entry at a time from any UniProt XML file
     returns a SeqRecord for each iteration
@@ -86,7 +86,9 @@ class Parser(object):
     return_raw_comments=True to get back the complete comment field in XML format
     alphabet=Alphabet.ProteinAlphabet()    can be modified if needed, default is protein alphabet.
     """
+
     def __init__(self, elem, alphabet=Alphabet.ProteinAlphabet(), return_raw_comments=False):
+        """Initialize the class."""
         self.entry = elem
         self.alphabet = alphabet
         self.return_raw_comments = return_raw_comments
@@ -186,35 +188,36 @@ class Parser(object):
             The original XML is returned in the annotation fields.
 
             Available comment types at december 2009:
-                "allergen"
-                "alternative products"
-                "biotechnology"
-                "biophysicochemical properties"
-                "catalytic activity"
-                "caution"
-                "cofactor"
-                "developmental stage"
-                "disease"
-                "domain"
-                "disruption phenotype"
-                "enzyme regulation"
-                "function"
-                "induction"
-                "miscellaneous"
-                "pathway"
-                "pharmaceutical"
-                "polymorphism"
-                "PTM"
-                "RNA editing"
-                "similarity"
-                "subcellular location"
-                "sequence caution"
-                "subunit"
-                "tissue specificity"
-                "toxic dose"
-                "online information"
-                "mass spectrometry"
-                "interaction"
+             - "allergen"
+             - "alternative products"
+             - "biotechnology"
+             - "biophysicochemical properties"
+             - "catalytic activity"
+             - "caution"
+             - "cofactor"
+             - "developmental stage"
+             - "disease"
+             - "domain"
+             - "disruption phenotype"
+             - "enzyme regulation"
+             - "function"
+             - "induction"
+             - "miscellaneous"
+             - "pathway"
+             - "pharmaceutical"
+             - "polymorphism"
+             - "PTM"
+             - "RNA editing"
+             - "similarity"
+             - "subcellular location"
+             - "sequence caution"
+             - "subunit"
+             - "tissue specificity"
+             - "toxic dose"
+             - "online information"
+             - "mass spectrometry"
+             - "interaction"
+
             """
             simple_comments = ["allergen",
                                "biotechnology",
@@ -392,7 +395,10 @@ class Parser(object):
             if journal_name:
                 if pub_date and j_volume and j_first and j_last:
                     reference.journal = REFERENCE_JOURNAL % dict(name=journal_name,
-                        volume=j_volume, first=j_first, last=j_last, pub_date=pub_date)
+                                                                 volume=j_volume,
+                                                                 first=j_first,
+                                                                 last=j_last,
+                                                                 pub_date=pub_date)
                 else:
                     reference.journal = journal_name
             reference.comment = ' | '.join((pub_type, pub_date, scopes_str, tissues_str))

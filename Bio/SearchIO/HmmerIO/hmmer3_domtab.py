@@ -12,13 +12,21 @@ from Bio.SearchIO._model import QueryResult, Hit, HSP, HSPFragment
 
 from .hmmer3_tab import Hmmer3TabParser, Hmmer3TabIndexer
 
+__all__ = (
+    'Hmmer3DomtabHmmhitParser',
+    'Hmmer3DomtabHmmqueryParser',
+    'Hmmer3DomtabHmmhitIndexer',
+    'Hmmer3DomtabHmmqueryIndexer',
+    'Hmmer3DomtabHmmhitWriter',
+    'Hmmer3DomtabHmmqueryWriter',
+)
+
 
 class Hmmer3DomtabParser(Hmmer3TabParser):
-
     """Base hmmer3-domtab iterator."""
 
     def _parse_row(self):
-        """Returns a dictionary of parsed row values."""
+        """Return a dictionary of parsed row values (PRIVATE)."""
         assert self.line
         cols = [x for x in self.line.strip().split(' ') if x]
         # if len(cols) > 23, we have extra description columns
@@ -64,15 +72,15 @@ class Hmmer3DomtabParser(Hmmer3TabParser):
 
         # switch hmm<-->ali coordinates if hmm is not hit
         if not self.hmm_as_hit:
-            frag['hit_end'], frag['query_end'] = \
-                    frag['query_end'], frag['hit_end']
-            frag['hit_start'], frag['query_start'] = \
-                    frag['query_start'], frag['hit_start']
+            frag['hit_end'], frag['query_end'] = (frag['query_end'],
+                                                  frag['hit_end'])
+            frag['hit_start'], frag['query_start'] = (frag['query_start'],
+                                                      frag['hit_start'])
 
         return {'qresult': qresult, 'hit': hit, 'hsp': hsp, 'frag': frag}
 
     def _parse_qresult(self):
-        """Generator function that returns QueryResult objects."""
+        """Return QueryResult objects (PRIVATE)."""
         # state values, determines what to do for each line
         state_EOF = 0
         state_QRES_NEW = 1
@@ -89,7 +97,8 @@ class Hmmer3DomtabParser(Hmmer3TabParser):
         # dummies for initial parsed value containers
         cur, prev = None, None
         hit_list, hsp_list = [], []
-
+        cur_qid = None
+        cur_hid = None
         while True:
             # store previous line's parsed values, for every line after the 1st
             if cur is not None:
@@ -152,51 +161,62 @@ class Hmmer3DomtabParser(Hmmer3TabParser):
 
 
 class Hmmer3DomtabHmmhitParser(Hmmer3DomtabParser):
+    """HMMER domain table parser using hit coordinates.
 
-    """Parser for the HMMER domain table format that assumes HMM profile
-    coordinates are hit coordinates."""
+    Parser for the HMMER domain table format that assumes HMM profile
+    coordinates are hit coordinates.
+    """
 
     hmm_as_hit = True
 
 
 class Hmmer3DomtabHmmqueryParser(Hmmer3DomtabParser):
+    """HMMER domain table parser using query coordinates.
 
-    """Parser for the HMMER domain table format that assumes HMM profile
-    coordinates are query coordinates."""
+    Parser for the HMMER domain table format that assumes HMM profile
+    coordinates are query coordinates.
+    """
 
     hmm_as_hit = False
 
 
 class Hmmer3DomtabHmmhitIndexer(Hmmer3TabIndexer):
+    """HMMER domain table indexer using hit coordinates.
 
-    """Indexer class for HMMER domain table output that assumes HMM profile
-    coordinates are hit coordinates."""
+    Indexer class for HMMER domain table output that assumes HMM profile
+    coordinates are hit coordinates.
+    """
 
     _parser = Hmmer3DomtabHmmhitParser
     _query_id_idx = 3
 
 
 class Hmmer3DomtabHmmqueryIndexer(Hmmer3TabIndexer):
+    """HMMER domain table indexer using query coordinates.
 
-    """Indexer class for HMMER domain table output that assumes HMM profile
-    coordinates are query coordinates."""
+    Indexer class for HMMER domain table output that assumes HMM profile
+    coordinates are query coordinates.
+    """
 
     _parser = Hmmer3DomtabHmmqueryParser
     _query_id_idx = 3
 
 
 class Hmmer3DomtabHmmhitWriter(object):
+    """HMMER domain table writer using hit coordinates.
 
-    """Writer for hmmer3-domtab output format which writes hit coordinates
-    as HMM profile coordinates."""
+    Writer for hmmer3-domtab output format which writes hit coordinates
+    as HMM profile coordinates.
+    """
 
     hmm_as_hit = True
 
     def __init__(self, handle):
+        """Initialize the class."""
         self.handle = handle
 
     def write_file(self, qresults):
-        """Writes to the handle.
+        """Write to the handle.
 
         Returns a tuple of how many QueryResult, Hit, and HSP objects were written.
 
@@ -223,7 +243,7 @@ class Hmmer3DomtabHmmhitWriter(object):
         return qresult_counter, hit_counter, hsp_counter, frag_counter
 
     def _build_header(self, first_qresult=None):
-        """Returns the header string of a domain HMMER table output."""
+        """Return the header string of a domain HMMER table output (PRIVATE)."""
         # calculate whitespace required
         # adapted from HMMER's source: src/p7_tophits.c#L1157
         if first_qresult:
@@ -238,30 +258,32 @@ class Hmmer3DomtabHmmhitWriter(object):
         else:
             qnamew, tnamew, qaccw, taccw = 20, 20, 10, 10
 
-        header = "#%*s %22s %40s %11s %11s %11s\n" % \
-                (tnamew + qnamew - 1 + 15 + taccw + qaccw, "", "--- full sequence ---",
-                "-------------- this domain -------------", "hmm coord",
-                "ali coord", "env coord")
-        header += "#%-*s %-*s %5s %-*s %-*s %5s %9s %6s %5s %3s %3s %9s " \
-                "%9s %6s %5s %5s %5s %5s %5s %5s %5s %4s %s\n" % (tnamew - 1,
-                " target name", taccw, "accession", "tlen", qnamew,
-                "query name", qaccw, "accession", "qlen", "E-value", "score",
-                "bias", "#", "of", "c-Evalue", "i-Evalue", "score", "bias",
-                "from", "to", "from", "to", "from", "to", "acc",
-                "description of target")
-        header += "#%*s %*s %5s %*s %*s %5s %9s %6s %5s %3s %3s %9s %9s " \
-                "%6s %5s %5s %5s %5s %5s %5s %5s %4s %s\n" % (tnamew - 1,
-                "-------------------", taccw, "----------", "-----",
-                qnamew, "--------------------", qaccw, "----------",
-                "-----", "---------", "------", "-----", "---", "---",
-                "---------", "---------", "------", "-----", "-----", "-----",
-                "-----", "-----", "-----", "-----", "----",
-                "---------------------")
+        header = ("#%*s %22s %40s %11s %11s %11s\n"
+                  % (tnamew + qnamew - 1 + 15 + taccw + qaccw, "", "--- full sequence ---",
+                     "-------------- this domain -------------", "hmm coord",
+                     "ali coord", "env coord"))
+        header += ("#%-*s %-*s %5s %-*s %-*s %5s %9s %6s %5s %3s %3s %9s "
+                   "%9s %6s %5s %5s %5s %5s %5s %5s %5s %4s %s\n"
+                   % (tnamew - 1,
+                      " target name", taccw, "accession", "tlen", qnamew,
+                      "query name", qaccw, "accession", "qlen", "E-value", "score",
+                      "bias", "#", "of", "c-Evalue", "i-Evalue", "score", "bias",
+                      "from", "to", "from", "to", "from", "to", "acc",
+                      "description of target"))
+        header += ("#%*s %*s %5s %*s %*s %5s %9s %6s %5s %3s %3s %9s %9s "
+                   "%6s %5s %5s %5s %5s %5s %5s %5s %4s %s\n"
+                   % (tnamew - 1,
+                      "-------------------", taccw, "----------", "-----",
+                      qnamew, "--------------------", qaccw, "----------",
+                      "-----", "---------", "------", "-----", "---", "---",
+                      "---------", "---------", "------", "-----", "-----", "-----",
+                      "-----", "-----", "-----", "-----", "----",
+                      "---------------------"))
 
         return header
 
     def _build_row(self, qresult):
-        """Returns a string or one row or more of the QueryResult object."""
+        """Return a string or one row or more of the QueryResult object (PRIVATE)."""
         rows = ''
 
         # calculate whitespace required
@@ -308,9 +330,11 @@ class Hmmer3DomtabHmmhitWriter(object):
 
 
 class Hmmer3DomtabHmmqueryWriter(Hmmer3DomtabHmmhitWriter):
+    """HMMER domain table writer using query coordinates.
 
-    """Writer for hmmer3-domtab output format which writes query coordinates
-    as HMM profile coordinates."""
+    Writer for hmmer3-domtab output format which writes query coordinates
+    as HMM profile coordinates.
+    """
 
     hmm_as_hit = False
 

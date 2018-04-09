@@ -8,18 +8,18 @@ This will find all modules whose name is "test_*.py" in the test
 directory, and run them.  Various command line options provide
 additional facilities.
 
-Command line options:
+Command line options::
 
---help        -- show usage info
---offline     -- skip tests which require internet access
--g;--generate -- write the output file for a test instead of comparing it.
-                 The name of the test to write the output for must be
-                 specified.
--v;--verbose  -- run tests with higher verbosity (does not affect our
-                 print-and-compare style unit tests).
-<test_name>   -- supply the name of one (or more) tests to be run.
-                 The .py file extension is optional.
-doctest       -- run the docstring tests.
+    --help        -- show usage info
+    --offline     -- skip tests which require internet access
+    -g;--generate -- write the output file for a test instead of comparing it.
+                     The name of the test to write the output for must be
+                     specified.
+    -v;--verbose  -- run tests with higher verbosity (does not affect our
+                     print-and-compare style unit tests).
+    <test_name>   -- supply the name of one (or more) tests to be run.
+                     The .py file extension is optional.
+    doctest       -- run the docstring tests.
 
 By default, all tests are run.
 """
@@ -48,6 +48,20 @@ except ImportError:
     from io import StringIO  # Python 3 (unicode strings)
 
 
+try:
+    import numpy
+    try:
+        # NumPy 1.14 changed repr output breaking our doctests,
+        # request the legacy 1.13 style
+        numpy.set_printoptions(legacy="1.13")
+    except TypeError:
+        # Old Numpy, output should be fine as it is :)
+        # TypeError: set_printoptions() got an unexpected keyword argument 'legacy'
+        pass
+except ImportError:
+    numpy = None
+
+
 def is_pypy():
     import platform
     try:
@@ -58,16 +72,6 @@ def is_pypy():
         pass
     return False
 
-
-def is_numpy():
-    if is_pypy():
-        return False
-    try:
-        import numpy
-        del numpy
-        return True
-    except ImportError:
-        return False
 
 # The default verbosity (not verbose)
 VERBOSITY = 0
@@ -89,6 +93,7 @@ DOCTEST_MODULES = [
     "Bio.AlignIO",
     "Bio.AlignIO.StockholmIO",
     "Bio.Alphabet",
+    "Bio.Alphabet.Reduced",
     "Bio.Application",
     "Bio.bgzf",
     "Bio.codonalign",
@@ -101,7 +106,9 @@ DOCTEST_MODULES = [
     "Bio.Graphics.GenomeDiagram._Colors",
     "Bio.KEGG.Compound",
     "Bio.KEGG.Enzyme",
+    "Bio.KEGG.Gene",
     "Bio.KEGG.KGML.KGML_parser",
+    "Bio.Nexus.Nexus",
     "Bio.NMR.xpktools",
     "Bio.motifs",
     "Bio.motifs.applications._xxmotif",
@@ -135,6 +142,7 @@ DOCTEST_MODULES = [
     "Bio.SeqUtils",
     "Bio.SeqUtils.CheckSum",
     "Bio.SeqUtils.MeltingTemp",
+    "Bio.SeqUtils.ProtParam",
     "Bio.Sequencing.Applications._Novoalign",
     "Bio.Sequencing.Applications._bwa",
     "Bio.Sequencing.Applications._samtools",
@@ -144,7 +152,7 @@ DOCTEST_MODULES = [
     "Bio.Wise.psw",
 ]
 # Silently ignore any doctests for modules requiring numpy!
-if is_numpy():
+if numpy:
     DOCTEST_MODULES.extend([
         "Bio.Affy.CelFile",
         "Bio.MaxEntropy",
@@ -196,6 +204,8 @@ def _have_bug17666():
         # TypeError: integer argument expected, got 'tuple'
         handle.close()
         return True
+
+
 if _have_bug17666():
     DOCTEST_MODULES.remove("Bio.bgzf")
 
@@ -289,9 +299,10 @@ class ComparisonTestCase(unittest.TestCase):
         """Initialize with the test to run.
 
         Arguments:
-        o name - The name of the test. The expected output should be
-          stored in the file output/name.
-        o output - The output that was generated when this test was run.
+            - name - The name of the test. The expected output should be
+              stored in the file output/name.
+            - output - The output that was generated when this test was run.
+
         """
         unittest.TestCase.__init__(self)
         self.name = name
@@ -363,8 +374,7 @@ class ComparisonTestCase(unittest.TestCase):
         expected.close()
 
     def generate_output(self):
-        """Generate the golden output for the specified test.
-        """
+        """Generate the golden output for the specified test."""
         outputdir = os.path.join(TestRunner.testdir, "output")
         outputfile = os.path.join(outputdir, self.name)
 
@@ -394,8 +404,13 @@ class TestRunner(unittest.TextTestRunner):
     testdir = os.path.abspath(os.path.dirname(file) or os.curdir)
 
     def __init__(self, tests=None, verbosity=0):
-        # if no tests were specified to run, we run them all
-        # including the doctests
+        """Initialise test runner.
+
+        If not tests are specified, we run them all,
+        including the doctests.
+
+        Defaults to running without any verbose logging.
+        """
         if tests is None:
             self.tests = []
         else:
@@ -499,7 +514,7 @@ class TestRunner(unittest.TextTestRunner):
             # Want to allow this, and abort the test
             # (see below for special case)
             raise err
-        except:
+        except:  # noqa: B901
             # This happens in Jython with java.lang.ClassFormatError:
             # Invalid method Code length ...
             sys.stderr.write("ERROR\n")

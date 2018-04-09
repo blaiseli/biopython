@@ -41,6 +41,28 @@ def test_assertion(name, result, expected):
            % (expected, result, name)
 
 
+class TrainingSequenceTest(unittest.TestCase):
+    def test_empty_state_training_sequence(self):
+        emission_seq = Seq('AB', LetterAlphabet())
+        state_seq = Seq('', NumberAlphabet())
+        training_seq = Trainer.TrainingSequence(emission_seq, state_seq)
+        assert training_seq.emissions == emission_seq
+        assert training_seq.states == state_seq
+
+    def test_valid_training_sequence(self):
+        emission_seq = Seq('AB', LetterAlphabet())
+        state_seq = Seq('12', NumberAlphabet())
+        training_seq = Trainer.TrainingSequence(emission_seq, state_seq)
+        assert training_seq.emissions == emission_seq
+        assert training_seq.states == state_seq
+
+    def test_invalid_training_sequence(self):
+        emission_seq = Seq('AB', LetterAlphabet())
+        state_seq = Seq('1', NumberAlphabet())
+        with self.assertRaises(ValueError):
+            Trainer.TrainingSequence(emission_seq, state_seq)
+
+
 class MarkovModelBuilderTest(unittest.TestCase):
     def setUp(self):
         self.mm_builder = MarkovModel.MarkovModelBuilder(NumberAlphabet(),
@@ -301,10 +323,7 @@ class HiddenMarkovModelTest(unittest.TestCase):
         test_assertion("log probability", round(prob, 11), round(max_prob, 11))
 
     def test_non_ergodic(self):
-        """Test a non-ergodic model (meaning that some transitions are not
-        allowed).
-        """
-
+        """Non-ergodic model (meaning that some transitions are not allowed)."""
         # make state '1' the initial state
         prob_1_initial = 1.0
         self.mm_builder.set_initial_probabilities(
@@ -381,8 +400,6 @@ class ScaledDPAlgorithmsTest(unittest.TestCase):
                          ('2', 0): .7}
         s_value = self.dp._calculate_s_value(1, previous_vars)
 
-        # print(s_value)
-
 
 class AbstractTrainerTest(unittest.TestCase):
     def setUp(self):
@@ -427,6 +444,7 @@ class AbstractTrainerTest(unittest.TestCase):
         expected_log_prob = -7.31873556778
         assert abs(expected_log_prob - log_prob) < 0.1, \
           "Bad probability calculated: %s" % log_prob
+
 
 # run the tests
 if __name__ == "__main__":

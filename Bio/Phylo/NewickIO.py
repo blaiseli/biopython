@@ -18,6 +18,7 @@ from Bio.Phylo import Newick
 
 class NewickError(Exception):
     """Exception raised when Newick object construction cannot continue."""
+
     pass
 
 
@@ -43,6 +44,7 @@ def parse(handle, **kwargs):
     """Iterate over the trees in a Newick file handle.
 
     :returns: generator of Bio.Phylo.Newick.Tree objects.
+
     """
     return Parser(handle).parse(**kwargs)
 
@@ -51,6 +53,7 @@ def write(trees, handle, plain=False, **kwargs):
     """Write a trees in Newick format to the given file handle.
 
     :returns: number of trees written.
+
     """
     return Writer(trees).write(handle, plain=plain, **kwargs)
 
@@ -89,10 +92,12 @@ class Parser(object):
     """
 
     def __init__(self, handle):
+        """Initialize file handle for the Newick Tree."""
         self.handle = handle
 
     @classmethod
     def from_string(cls, treetext):
+        """Instantiate the Newick Tree class from the given string."""
         handle = StringIO(treetext)
         return cls(handle)
 
@@ -122,7 +127,7 @@ class Parser(object):
             yield self._parse_tree(buf)
 
     def _parse_tree(self, text):
-        """Parses the text representation into an Tree object."""
+        """Parse the text representation into an Tree object (PRIVATE)."""
         tokens = re.finditer(tokenizer, text.strip())
 
         new_clade = self.new_clade
@@ -207,16 +212,14 @@ class Parser(object):
         return Newick.Tree(root=root_clade, rooted=self.rooted)
 
     def new_clade(self, parent=None):
-        """Returns a new Newick.Clade, optionally with a temporary reference
-        to its parent clade."""
+        """Return new Newick.Clade, optionally with temporary reference to parent."""
         clade = Newick.Clade()
         if parent:
             clade.parent = parent
         return clade
 
     def process_clade(self, clade):
-        """Final processing of a parsed clade. Removes the node's parent and
-        returns it."""
+        """Remove node's parent and return it. Final processing of parsed clade."""
         if ((clade.name) and not
                 (self.values_are_confidence or self.comments_are_confidence) and
                 (clade.confidence is None) and
@@ -239,6 +242,7 @@ class Writer(object):
     """Based on the writer in Bio.Nexus.Trees (str, to_string)."""
 
     def __init__(self, trees):
+        """Initialize parameter for Tree Writer object."""
         self.trees = trees
 
     def write(self, handle, **kwargs):
@@ -327,7 +331,7 @@ class Writer(object):
                     return (':' + format_branch_length
                             ) % (clade.branch_length or 0.0) + _get_comment(clade)
                 else:
-                    return (':' + format_confidence + ':' + format_branch_length
+                    return (format_confidence + ':' + format_branch_length
                             ) % (clade.confidence, clade.branch_length or 0.0) + _get_comment(clade)
 
         return make_info_string

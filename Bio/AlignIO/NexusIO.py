@@ -1,4 +1,4 @@
-# Copyright 2008-2010, 2012-2014, 2016 by Peter Cock.  All rights reserved.
+# Copyright 2008-2010, 2012-2014, 2016-2017 by Peter Cock.  All rights reserved.
 #
 # This file is part of the Biopython distribution and governed by your
 # choice of the "Biopython License Agreement" or the "BSD 3-Clause License".
@@ -29,7 +29,7 @@ from Bio import Alphabet
 
 # This is a generator function!
 def NexusIterator(handle, seq_count=None):
-    """Returns SeqRecord objects from a Nexus file.
+    """Return SeqRecord objects from a Nexus file.
 
     Thus uses the Bio.Nexus module to do the hard work.
 
@@ -42,7 +42,7 @@ def NexusIterator(handle, seq_count=None):
     n = Nexus.Nexus(handle)
     if not n.matrix:
         # No alignment found
-        raise StopIteration
+        return
 
     # Bio.Nexus deals with duplicated names by adding a '.copy' suffix.
     # The original names and the modified names are kept in these two lists:
@@ -50,7 +50,7 @@ def NexusIterator(handle, seq_count=None):
 
     if seq_count and seq_count != len(n.unaltered_taxlabels):
         raise ValueError("Found %i sequences, but seq_count=%i"
-               % (len(n.unaltered_taxlabels), seq_count))
+                         % (len(n.unaltered_taxlabels), seq_count))
 
     # TODO - Can we extract any annotation too?
     records = (SeqRecord(n.matrix[new_name], id=new_name,
@@ -70,13 +70,14 @@ class NexusWriter(AlignmentWriter):
     You are expected to call this class via the Bio.AlignIO.write() or
     Bio.SeqIO.write() functions.
     """
+
     def write_file(self, alignments):
         """Use this to write an entire file containing the given alignments.
 
         Arguments:
-
          - alignments - A list or iterator returning MultipleSeqAlignment objects.
            This should hold ONE and only one alignment.
+
         """
         align_iter = iter(alignments)  # Could have been a list
         try:
@@ -99,9 +100,14 @@ class NexusWriter(AlignmentWriter):
         self.write_alignment(first_alignment)
         return 1  # we only support writing one alignment!
 
-    def write_alignment(self, alignment):
-        # Creates an empty Nexus object, adds the sequences,
-        # and then gets Nexus to prepare the output.
+    def write_alignment(self, alignment, interleave=None):
+        """Write an alignment to file.
+
+        Creates an empty Nexus object, adds the sequences
+        and then gets Nexus to prepare the output.
+        Default interleave behaviour: Interleave if columns > 1000
+        --> Override with interleave=[True/False]
+        """
         if len(alignment) == 0:
             raise ValueError("Must have at least one sequence")
         columns = alignment.get_alignment_length()
@@ -114,16 +120,17 @@ class NexusWriter(AlignmentWriter):
         n.alphabet = alignment._alphabet
         for record in alignment:
             n.add_sequence(record.id, str(record.seq))
-        # For smaller alignments, don't bother to interleave.
-        # For larger alginments, interleave to avoid very long lines
-        # in the output - something MrBayes can't handle.
-        # TODO - Default to always interleaving?
-        n.write_nexus_data(self.handle, interleave=(columns > 1000))
+
+        # Note: MrBayes may choke on large alignments if not interleaved
+        if interleave is None:
+            interleave = (columns > 1000)
+        n.write_nexus_data(self.handle, interleave=interleave)
 
     def _classify_alphabet_for_nexus(self, alphabet):
-        """Returns 'protein', 'dna', 'rna' based on the alphabet (PRIVATE).
+        """Return 'protein', 'dna', or 'rna' based on the alphabet (PRIVATE).
 
-        Raises an exception if this is not possible."""
+        Raises an exception if this is not possible.
+        """
         # Get the base alphabet (underneath any Gapped or StopCodon encoding)
         a = Alphabet._get_base_alphabet(alphabet)
 
@@ -139,6 +146,7 @@ class NexusWriter(AlignmentWriter):
             # Must be something like NucleotideAlphabet or
             # just the generic Alphabet (default for fasta files)
             raise ValueError("Need a DNA, RNA or Protein alphabet")
+
 
 if __name__ == "__main__":
     from Bio._utils import run_doctest

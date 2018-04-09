@@ -6,8 +6,7 @@
 # This code is part of the Biopython distribution and governed by its
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
-"""
-Parser for PHD files output by PHRED and used by PHRAP and CONSED.
+"""Parser for PHD files output by PHRED and used by PHRAP and CONSED.
 
 This module can be used directly which will return Record objects
 which should contain all the original data in the file.
@@ -27,7 +26,9 @@ CKEYWORDS = ['CHROMAT_FILE', 'ABI_THUMBPRINT', 'PHRED_VERSION', 'CALL_METHOD',
 
 class Record(object):
     """Hold information from a PHD file."""
+
     def __init__(self):
+        """Initialize the class."""
         self.file_name = ''
         self.comments = {}
         for kw in CKEYWORDS:
@@ -38,7 +39,7 @@ class Record(object):
 
 
 def read(handle):
-    """Reads the next PHD record from the file, returning it as a Record object.
+    """Read the next PHD record from the file, return it as a Record object.
 
     This function reads PHD file data line by line from the handle,
     and returns a single Record object.
@@ -123,7 +124,7 @@ def read(handle):
 
 
 def parse(handle):
-    """Iterates over a file returning multiple PHD records.
+    """Iterate over a file yielding multiple PHD records.
 
     The data is read line by line from the handle. The handle can be a list
     of lines, an open file, or similar; the only requirement is that we can
@@ -134,6 +135,7 @@ def parse(handle):
         records = parse(handle)
         for record in records:
             # do something with the record object
+
     """
     while True:
         record = read(handle)

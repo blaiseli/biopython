@@ -1,4 +1,4 @@
-# Copyright 2009-2015 by Peter Cock.  All rights reserved.
+# Copyright 2009-2017 by Peter Cock.  All rights reserved.
 # This code is part of the Biopython distribution and governed by its
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
@@ -44,7 +44,7 @@ please read this open access publication::
     P.J.A.Cock (Biopython), C.J.Fields (BioPerl), N.Goto (BioRuby),
     M.L.Heuer (BioJava) and P.M. Rice (EMBOSS).
     Nucleic Acids Research 2010 38(6):1767-1771
-    http://dx.doi.org/10.1093/nar/gkp1137
+    https://doi.org/10.1093/nar/gkp1137
 
 The good news is that Roche 454 sequencers can output files in the QUAL format,
 and sensibly they use PHREP style scores like Sanger.  Converting a pair of
@@ -367,6 +367,8 @@ from Bio.Alphabet import single_letter_alphabet
 from Bio.Seq import Seq, UnknownSeq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqIO.Interfaces import SequentialSequenceWriter
+from Bio.SeqIO.Interfaces import _clean, _get_seq_string
+
 from math import log
 import warnings
 from Bio import BiopythonWarning, BiopythonParserWarning
@@ -536,6 +538,7 @@ def _get_phred_quality(record):
                          "letter_annotations of SeqRecord (id=%s)."
                          % record.id)
 
+
 # Only map 0 to 93, we need to give a warning on truncating at 93
 _phred_to_sanger_quality_str = dict((qp, chr(min(126, qp + SANGER_SCORE_OFFSET)))
                                     for qp in range(0, 93 + 1))
@@ -547,7 +550,7 @@ _solexa_to_sanger_quality_str = dict(
 
 
 def _get_sanger_quality_str(record):
-    """Returns a Sanger FASTQ encoded quality string (PRIVATE).
+    """Return a Sanger FASTQ encoded quality string (PRIVATE).
 
     >>> from Bio.Seq import Seq
     >>> from Bio.SeqRecord import SeqRecord
@@ -655,6 +658,7 @@ def _get_sanger_quality_str(record):
     return "".join(chr(min(126, int(round(phred_quality_from_solexa(qs))) + SANGER_SCORE_OFFSET))
                    for qs in qualities)
 
+
 # Only map 0 to 62, we need to give a warning on truncating at 62
 assert 62 + SOLEXA_SCORE_OFFSET == 126
 _phred_to_illumina_quality_str = dict((qp, chr(qp + SOLEXA_SCORE_OFFSET))
@@ -666,7 +670,7 @@ _solexa_to_illumina_quality_str = dict(
 
 
 def _get_illumina_quality_str(record):
-    """Returns an Illumina 1.3 to 1.7 FASTQ encoded quality string (PRIVATE).
+    """Return an Illumina 1.3 to 1.7 FASTQ encoded quality string (PRIVATE).
 
     Notice that due to the limited range of printable ASCII characters, a
     PHRED quality of 62 is the maximum that can be held in an Illumina FASTQ
@@ -723,6 +727,7 @@ def _get_illumina_quality_str(record):
     return "".join(chr(min(126, int(round(phred_quality_from_solexa(qs))) + SOLEXA_SCORE_OFFSET))
                    for qs in qualities)
 
+
 # Only map 0 to 62, we need to give a warning on truncating at 62
 assert 62 + SOLEXA_SCORE_OFFSET == 126
 _solexa_to_solexa_quality_str = dict((qs, chr(min(126, qs + SOLEXA_SCORE_OFFSET)))
@@ -735,7 +740,7 @@ _phred_to_solexa_quality_str = dict(
 
 
 def _get_solexa_quality_str(record):
-    """Returns a Solexa FASTQ encoded quality string (PRIVATE).
+    """Return a Solexa FASTQ encoded quality string (PRIVATE).
 
     Notice that due to the limited range of printable ASCII characters, a
     Solexa quality of 62 is the maximum that can be held in a Solexa FASTQ
@@ -889,15 +894,11 @@ def FastqGeneralIterator(handle):
     # so we'll save a property look up each time:
     handle_readline = handle.readline
 
-    # Skip any text before the first record (e.g. blank lines, comments?)
-    while True:
-        line = handle_readline()
-        if not line:
-            return  # Premature end of file, or just empty?
-        if line[0] == "@":
-            break
-        if isinstance(line[0], int):
-            raise ValueError("Is this handle in binary mode not text mode?")
+    line = handle_readline()
+    if not line:
+        return  # Premature end of file, or just empty?
+    if isinstance(line[0], int):
+        raise ValueError("Is this handle in binary mode not text mode?")
 
     while line:
         if line[0] != "@":
@@ -955,16 +956,16 @@ def FastqGeneralIterator(handle):
 
 
 def FastqPhredIterator(handle, alphabet=single_letter_alphabet, title2ids=None):
-    """Generator function to iterate over FASTQ records (as SeqRecord objects).
+    """Iterate over FASTQ records as SeqRecord objects.
 
-        - handle - input file
-        - alphabet - optional alphabet
-        - title2ids - A function that, when given the title line from the FASTQ
-          file (without the beginning >), will return the id, name and
-          description (in that order) for the record as a tuple of
-          strings.  If this is not given, then the entire title line
-          will be used as the description, and the first word as the
-          id and name.
+    Arguments:
+     - handle - input file
+     - alphabet - optional alphabet
+     - title2ids - A function that, when given the title line from the FASTQ
+       file (without the beginning >), will return the id, name and
+       description (in that order) for the record as a tuple of strings.
+       If this is not given, then the entire title line will be used as
+       the description, and the first word as the id and name.
 
     Note that use of title2ids matches that of Bio.SeqIO.FastaIO.
 
@@ -1050,7 +1051,7 @@ def FastqPhredIterator(handle, alphabet=single_letter_alphabet, title2ids=None):
 
 
 def FastqSolexaIterator(handle, alphabet=single_letter_alphabet, title2ids=None):
-    r"""Parsing old Solexa/Illumina FASTQ like files (which differ in the quality mapping).
+    r"""Parse old Solexa/Illumina FASTQ like files (which differ in the quality mapping).
 
     The optional arguments are the same as those for the FastqPhredIterator.
 
@@ -1374,13 +1375,14 @@ def QualPhredIterator(handle, alphabet=single_letter_alphabet, title2ids=None):
 
 
 class FastqPhredWriter(SequentialSequenceWriter):
-    """Class to write standard FASTQ format files (using PHRED quality scores).
+    """Class to write standard FASTQ format files (using PHRED quality scores) (OBSOLETE).
 
     Although you can use this class directly, you are strongly encouraged
-    to use the Bio.SeqIO.write() function instead via the format name "fastq"
-    or the alias "fastq-sanger".  For example, this code reads in a standard
-    Sanger style FASTQ file (using PHRED scores) and re-saves it as another
-    Sanger style FASTQ file:
+    to use the ``as_fastq`` function, or top level ``Bio.SeqIO.write()``
+    function instead via the format name "fastq" or the alias "fastq-sanger".
+
+    For example, this code reads in a standard Sanger style FASTQ file
+    (using PHRED scores) and re-saves it as another Sanger style FASTQ file:
 
     >>> from Bio import SeqIO
     >>> record_iterator = SeqIO.parse("Quality/example.fastq", "fastq")
@@ -1417,6 +1419,7 @@ class FastqPhredWriter(SequentialSequenceWriter):
     >>> import os
     >>> os.remove("Quality/temp.fastq")
     """
+
     assert SANGER_SCORE_OFFSET == ord("!")
 
     def write_record(self, record):
@@ -1448,12 +1451,38 @@ class FastqPhredWriter(SequentialSequenceWriter):
         self.handle.write("@%s\n%s\n+\n%s\n" % (title, seq_str, qualities_str))
 
 
+def as_fastq(record):
+    """Turn a SeqRecord into a Sanger FASTQ formated string.
+
+    This is used internally by the SeqRecord's .format("fastq")
+    method and by the SeqIO.write(..., ..., "fastq") function,
+    and under the format alias "fastq-sanger" as well.
+    """
+    seq_str = _get_seq_string(record)
+    qualities_str = _get_sanger_quality_str(record)
+    if len(qualities_str) != len(seq_str):
+        raise ValueError("Record %s has sequence length %i but %i quality scores"
+                         % (record.id, len(seq_str), len(qualities_str)))
+    id = _clean(record.id)
+    description = _clean(record.description)
+    if description and description.split(None, 1)[0] == id:
+        title = description
+    elif description:
+        title = "%s %s" % (id, description)
+    else:
+        title = id
+    return "@%s\n%s\n+\n%s\n" % (title, seq_str, qualities_str)
+
+
 class QualPhredWriter(SequentialSequenceWriter):
-    """Class to write QUAL format files (using PHRED quality scores).
+    """Class to write QUAL format files (using PHRED quality scores) (OBSOLETE).
 
     Although you can use this class directly, you are strongly encouraged
-    to use the Bio.SeqIO.write() function instead.  For example, this code
-    reads in a FASTQ file and saves the quality scores into a QUAL file:
+    to use the ``as_qual`` function, or top level ``Bio.SeqIO.write()``
+    function instead.
+
+    For example, this code reads in a FASTQ file and saves the quality scores
+    into a QUAL file:
 
     >>> from Bio import SeqIO
     >>> record_iterator = SeqIO.parse("Quality/example.fastq", "fastq")
@@ -1469,21 +1498,22 @@ class QualPhredWriter(SequentialSequenceWriter):
     >>> import os
     >>> os.remove("Quality/temp.qual")
     """
+
     def __init__(self, handle, wrap=60, record2title=None):
         """Create a QUAL writer.
 
         Arguments:
          - handle - Handle to an output file, e.g. as returned
-                    by open(filename, "w")
+           by open(filename, "w")
          - wrap   - Optional line length used to wrap sequence lines.
-                    Defaults to wrapping the sequence at 60 characters
-                    Use zero (or None) for no wrapping, giving a single
-                    long line for the sequence.
+           Defaults to wrapping the sequence at 60 characters. Use
+           zero (or None) for no wrapping, giving a single long line
+           for the sequence.
          - record2title - Optional function to return the text to be
-                    used for the title line of each record.  By default
-                    a combination of the record.id and record.description
-                    is used.  If the record.description starts with the
-                    record.id, then just the record.description is used.
+           used for the title line of each record.  By default a
+           combination of the record.id and record.description is
+           used.  If the record.description starts with the record.id,
+           then just the record.description is used.
 
         The record2title argument is present for consistency with the
         Bio.SeqIO.FastaIO writer class.
@@ -1558,8 +1588,45 @@ class QualPhredWriter(SequentialSequenceWriter):
             handle.write(data + "\n")
 
 
+def as_qual(record):
+    """Turn a SeqRecord into a QUAL formated string.
+
+    This is used internally by the SeqRecord's .format("qual")
+    method and by the SeqIO.write(..., ..., "qual") function.
+    """
+    id = _clean(record.id)
+    description = _clean(record.description)
+    if description and description.split(None, 1)[0] == id:
+        title = description
+    elif description:
+        title = "%s %s" % (id, description)
+    else:
+        title = id
+    lines = [">%s\n" % title]
+
+    qualities = _get_phred_quality(record)
+    try:
+        # This rounds to the nearest integer.
+        # TODO - can we record a float in a qual file?
+        qualities_strs = [("%i" % round(q, 0)) for q in qualities]
+    except TypeError as e:
+        if None in qualities:
+            raise TypeError("A quality value of None was found")
+        else:
+            raise e
+
+    # Safe wrapping
+    while qualities_strs:
+        line = qualities_strs.pop(0)
+        while qualities_strs \
+                and len(line) + 1 + len(qualities_strs[0]) < 60:
+            line += " " + qualities_strs.pop(0)
+        lines.append(line + "\n")
+    return "".join(lines)
+
+
 class FastqSolexaWriter(SequentialSequenceWriter):
-    r"""Write old style Solexa/Illumina FASTQ format files (with Solexa qualities).
+    r"""Write old style Solexa/Illumina FASTQ format files (with Solexa qualities) (OBSOLETE).
 
     This outputs FASTQ files like those from the early Solexa/Illumina
     pipeline, using Solexa scores and an ASCII offset of 64. These are
@@ -1571,8 +1638,9 @@ class FastqSolexaWriter(SequentialSequenceWriter):
     of quality scores are present, an exception is raised.
 
     Although you can use this class directly, you are strongly encouraged
-    to use the Bio.SeqIO.write() function instead.  For example, this code
-    reads in a FASTQ file and re-saves it as another FASTQ file:
+    to use the ``as_fastq_solexa`` function, or top-level ``Bio.SeqIO.write()``
+    function instead.  For example, this code reads in a FASTQ file and re-saves
+    it as another FASTQ file:
 
     >>> from Bio import SeqIO
     >>> record_iterator = SeqIO.parse("Quality/solexa_example.fastq", "fastq-solexa")
@@ -1606,6 +1674,7 @@ class FastqSolexaWriter(SequentialSequenceWriter):
     >>> import os
     >>> os.remove("Quality/temp.fastq")
     """
+
     def write_record(self, record):
         """Write a single FASTQ record to the file."""
         assert self._header_written
@@ -1636,8 +1705,31 @@ class FastqSolexaWriter(SequentialSequenceWriter):
         self.handle.write("@%s\n%s\n+\n%s\n" % (title, seq_str, qualities_str))
 
 
+def as_fastq_solexa(record):
+    """Turn a SeqRecord into a Solexa FASTQ formated string.
+
+    This is used internally by the SeqRecord's .format("fastq-solexa")
+    method and by the SeqIO.write(..., ..., "fastq-solexa") function.
+    """
+    seq_str = _get_seq_string(record)
+    qualities_str = _get_solexa_quality_str(record)
+    if len(qualities_str) != len(seq_str):
+        raise ValueError("Record %s has sequence length %i but %i quality scores"
+                         % (record.id, len(seq_str), len(qualities_str)))
+    id = _clean(record.id)
+    description = _clean(record.description)
+    if description and description.split(None, 1)[0] == id:
+        # The description includes the id at the start
+        title = description
+    elif description:
+        title = "%s %s" % (id, description)
+    else:
+        title = id
+    return "@%s\n%s\n+\n%s\n" % (title, seq_str, qualities_str)
+
+
 class FastqIlluminaWriter(SequentialSequenceWriter):
-    r"""Write Illumina 1.3+ FASTQ format files (with PHRED quality scores).
+    r"""Write Illumina 1.3+ FASTQ format files (with PHRED quality scores) (OBSOLETE).
 
     This outputs FASTQ files like those from the Solexa/Illumina 1.3+ pipeline,
     using PHRED scores and an ASCII offset of 64. Note these files are NOT
@@ -1645,9 +1737,9 @@ class FastqIlluminaWriter(SequentialSequenceWriter):
     ASCII offset of 32.
 
     Although you can use this class directly, you are strongly encouraged to
-    use the Bio.SeqIO.write() function with format name "fastq-illumina"
-    instead. This code is also called if you use the .format("fastq-illumina")
-    method of a SeqRecord. For example,
+    use the ``as_fastq_illumina`` or top-level ``Bio.SeqIO.write()`` function
+    with format name "fastq-illumina" instead. This code is also called if you
+    use the .format("fastq-illumina") method of a SeqRecord. For example,
 
     >>> from Bio import SeqIO
     >>> record = SeqIO.read("Quality/sanger_faked.fastq", "fastq-sanger")
@@ -1662,6 +1754,7 @@ class FastqIlluminaWriter(SequentialSequenceWriter):
     encoded as ASCII 126, the tilde. If your quality scores are truncated to fit, a
     warning is issued.
     """
+
     def write_record(self, record):
         """Write a single FASTQ record to the file."""
         assert self._header_written
@@ -1690,6 +1783,28 @@ class FastqIlluminaWriter(SequentialSequenceWriter):
             title = id
 
         self.handle.write("@%s\n%s\n+\n%s\n" % (title, seq_str, qualities_str))
+
+
+def as_fastq_illumina(record):
+    """Turn a SeqRecord into an Illumina FASTQ formated string.
+
+    This is used internally by the SeqRecord's .format("fastq-illumina")
+    method and by the SeqIO.write(..., ..., "fastq-illumina") function.
+    """
+    seq_str = _get_seq_string(record)
+    qualities_str = _get_illumina_quality_str(record)
+    if len(qualities_str) != len(seq_str):
+        raise ValueError("Record %s has sequence length %i but %i quality scores"
+                         % (record.id, len(seq_str), len(qualities_str)))
+    id = _clean(record.id)
+    description = _clean(record.description)
+    if description and description.split(None, 1)[0] == id:
+        title = description
+    elif description:
+        title = "%s %s" % (id, description)
+    else:
+        title = id
+    return "@%s\n%s\n+\n%s\n" % (title, seq_str, qualities_str)
 
 
 def PairedFastaQualIterator(fasta_handle, qual_handle, alphabet=single_letter_alphabet, title2ids=None):

@@ -24,6 +24,7 @@ from Bio import _utils
 import sys
 if sys.version_info[0] < 3:
     def as_string(s):
+        """Encode string to UTF-8."""
         if isinstance(s, unicode):
             return s.encode('utf-8')
         return str(s)
@@ -34,7 +35,7 @@ else:
 # General tree-traversal algorithms
 
 def _level_traverse(root, get_children):
-    """Traverse a tree in breadth-first (level) order."""
+    """Traverse a tree in breadth-first (level) order (PRIVATE)."""
     Q = collections.deque([root])
     while Q:
         v = Q.popleft()
@@ -43,7 +44,7 @@ def _level_traverse(root, get_children):
 
 
 def _preorder_traverse(root, get_children):
-    """Traverse a tree in depth-first pre-order (parent before children)."""
+    """Traverse a tree in depth-first pre-order (parent before children) (PRIVATE)."""
     def dfs(elem):
         yield elem
         for v in get_children(elem):
@@ -54,7 +55,7 @@ def _preorder_traverse(root, get_children):
 
 
 def _postorder_traverse(root, get_children):
-    """Traverse a tree in depth-first post-order (children before parent)."""
+    """Traverse a tree in depth-first post-order (children before parent) (PRIVATE)."""
     def dfs(elem):
         for v in get_children(elem):
             for u in dfs(v):
@@ -65,7 +66,7 @@ def _postorder_traverse(root, get_children):
 
 
 def _sorted_attrs(elem):
-    """Get a flat list of elem's attributes, sorted for consistency."""
+    """Get a flat list of elem's attributes, sorted for consistency (PRIVATE)."""
     singles = []
     lists = []
     # Sort attributes for consistent results
@@ -84,14 +85,14 @@ def _sorted_attrs(elem):
 # Factory functions to generalize searching for clades/nodes
 
 def _identity_matcher(target):
-    """Match a node to the target object by identity."""
+    """Match a node to the target object by identity (PRIVATE)."""
     def match(node):
         return (node is target)
     return match
 
 
 def _class_matcher(target_cls):
-    """Match a node if it's an instance of the given class."""
+    """Match a node if it's an instance of the given class (PRIVATE)."""
     def match(node):
         return isinstance(node, target_cls)
     return match
@@ -107,7 +108,7 @@ def _string_matcher(target):
 
 
 def _attribute_matcher(kwargs):
-    """Match a node by specified attribute values.
+    """Match a node by specified attribute values (PRIVATE).
 
     ``terminal`` is a special case: True restricts the search to external (leaf)
     nodes, False restricts to internal nodes, and None allows all tree elements
@@ -150,7 +151,7 @@ def _attribute_matcher(kwargs):
 
 
 def _function_matcher(matcher_func):
-    """Safer attribute lookup -- returns False instead of raising an error."""
+    """Safer attribute lookup -- returns False instead of raising an error (PRIVATE)."""
     def match(node):
         try:
             return matcher_func(node)
@@ -160,7 +161,7 @@ def _function_matcher(matcher_func):
 
 
 def _object_matcher(obj):
-    """Retrieve a matcher function by passing an arbitrary object.
+    """Retrieve a matcher function by passing an arbitrary object (PRIVATE).
 
     i.e. passing a `TreeElement` such as a `Clade` or `Tree` instance returns an
     identity matcher, passing a type such as the `PhyloXML.Taxonomy` class
@@ -187,7 +188,7 @@ def _object_matcher(obj):
 
 
 def _combine_matchers(target, kwargs, require_spec):
-    """Merge target specifications with keyword arguments.
+    """Merge target specifications with keyword arguments (PRIVATE).
 
     Dispatch the components to the various matcher functions, then merge into a
     single boolean function.
@@ -207,7 +208,7 @@ def _combine_matchers(target, kwargs, require_spec):
 
 
 def _combine_args(first, *rest):
-    """Convert ``[targets]`` or ``*targets`` arguments to a single iterable.
+    """Convert ``[targets]`` or ``*targets`` arguments to a single iterable (PRIVATE).
 
     This helps other functions work like the built-in functions `max` and
     `min`.
@@ -262,12 +263,14 @@ class TreeMixin(object):
     required to have all of Tree's attributes -- just ``root`` (a Clade
     instance) and ``is_terminal``.
     """
+
     # Traversal methods
 
     def _filter_search(self, filter_func, order, follow_attrs):
-        """Perform a BFS or DFS traversal through all elements in this tree.
+        """Perform a BFS or DFS traversal through all elements in this tree (PRIVATE).
 
         :returns: generator of all elements for which `filter_func` is True.
+
         """
         order_opts = {'preorder': _preorder_traverse,
                       'postorder': _postorder_traverse,
@@ -330,9 +333,8 @@ class TreeMixin(object):
                 search, 'postorder' is DFS with child nodes preceding parents,
                 and 'level' is breadth-first search.
 
-        Example
-        -------
-
+        Examples
+        --------
         >>> from Bio import Phylo
         >>> phx = Phylo.PhyloXMLIO.read('PhyloXML/phyloxml_examples.xml')
         >>> matches = phx.phylogenies[5].find_elements(code='OCTVU')
@@ -354,6 +356,7 @@ class TreeMixin(object):
 
         :returns: an iterable through all matching objects, searching
             depth-first (preorder) by default.
+
         """
         def match_attrs(elem):
             orig_clades = elem.__dict__.pop('clades')
@@ -373,6 +376,7 @@ class TreeMixin(object):
 
         :returns: list of all clade objects along this path, ending with the
             given target, but excluding the root clade.
+
         """
         # Only one path will work -- ignore weights and visits
         path = []
@@ -418,9 +422,10 @@ class TreeMixin(object):
         """Most recent common ancestor (clade) of all the given targets.
 
         Edge cases:
-        - If no target is given, returns self.root
-        - If 1 target is given, returns the target
-        - If any target is not found in this tree, raises a ValueError
+         - If no target is given, returns self.root
+         - If 1 target is given, returns the target
+         - If any target is not found in this tree, raises a ValueError
+
         """
         paths = [self.get_path(t)
                  for t in _combine_args(targets, *more_targets)]
@@ -441,10 +446,10 @@ class TreeMixin(object):
         return mrca
 
     def count_terminals(self):
-        """Counts the number of terminal (leaf) nodes within this tree."""
+        """Count the number of terminal (leaf) nodes within this tree."""
         return _utils.iterlen(self.find_clades(terminal=True))
 
-    def depths(self, unit_branch_lengths=False):
+    def depths(self, unit_branch_lengths=False):  # noqa: D402
         """Create a mapping of tree clades to depths (by branch length).
 
         :Parameters:
@@ -456,6 +461,7 @@ class TreeMixin(object):
         :returns: dict of {clade: depth}, where keys are all of the Clade
             instances in the tree, and values are the distance from the root to
             each clade (including terminals).
+
         """
         if unit_branch_lengths:
             depth_of = lambda c: 1
@@ -520,6 +526,7 @@ class TreeMixin(object):
         otherwise.
 
         :returns: common ancestor if terminals are monophyletic, otherwise False.
+
         """
         target_set = set(_combine_args(terminals, *more_terminals))
         current = self.root
@@ -535,7 +542,7 @@ class TreeMixin(object):
                 return False
 
     def is_parent_of(self, target=None, **kwargs):
-        """True if target is a descendent of this tree.
+        """Check if target is a descendent of this tree.
 
         Not required to be a direct descendent.
 
@@ -545,7 +552,7 @@ class TreeMixin(object):
         return self.get_path(target, **kwargs) is not None
 
     def is_preterminal(self):
-        """True if all direct descendents are terminal."""
+        """Check if all direct descendents are terminal."""
         if self.root.is_terminal():
             return False
         for clade in self.root.clades:
@@ -561,9 +568,10 @@ class TreeMixin(object):
     # Tree manipulation methods
 
     def collapse(self, target=None, **kwargs):
-        """Deletes target from the tree, relinking its children to its parent.
+        """Delete target from the tree, relinking its children to its parent.
 
         :returns: the parent clade.
+
         """
         path = self.get_path(target, **kwargs)
         if not path:
@@ -649,6 +657,7 @@ class TreeMixin(object):
         longer be a meaningful value.
 
         :returns: parent clade of the pruned target
+
         """
         if 'terminal' in kwargs and kwargs['terminal']:
             raise ValueError("target must be terminal")
@@ -720,9 +729,11 @@ class Tree(TreeElement, TreeMixin):
             The identifier of the tree, if there is one.
         name : str
             The name of the tree, in essence a label.
+
     """
 
     def __init__(self, root=None, rooted=True, id=None, name=None):
+        """Initialize parameter for phylogenetic tree."""
         self.root = root or Clade()
         self.rooted = rooted
         self.id = id
@@ -746,6 +757,7 @@ class Tree(TreeElement, TreeMixin):
             strings.
 
         :returns: a tree of the same type as this class.
+
         """
         if isinstance(taxa, int):
             taxa = ['taxon%s' % (i + 1) for i in range(taxa)]
@@ -775,7 +787,7 @@ class Tree(TreeElement, TreeMixin):
 
     @property
     def clade(self):
-        """The first clade in this tree (not itself)."""
+        """Return first clade in this tree (not itself)."""
         return self.root
 
     def as_phyloxml(self, **kwargs):
@@ -795,14 +807,13 @@ class Tree(TreeElement, TreeMixin):
         Operates in-place.
 
         Edge cases:
-
-        - If ``outgroup == self.root``, no change
-        - If outgroup is terminal, create new bifurcating root node with a
-          0-length branch to the outgroup
-        - If outgroup is internal, use the given outgroup node as the new
-          trifurcating root, keeping branches the same
-        - If the original root was bifurcating, drop it from the tree,
-          preserving total branch lengths
+         - If ``outgroup == self.root``, no change
+         - If outgroup is terminal, create new bifurcating root node with a
+           0-length branch to the outgroup
+         - If outgroup is internal, use the given outgroup node as the new
+           trifurcating root, keeping branches the same
+         - If the original root was bifurcating, drop it from the tree,
+           preserving total branch lengths
 
         :param outgroup_branch_length: length of the branch leading to the
             outgroup after rerooting. If not specified (None), then:
@@ -925,7 +936,7 @@ class Tree(TreeElement, TreeMixin):
     # Method assumed by TreeMixin
 
     def is_terminal(self):
-        """True if the root of this tree is terminal."""
+        """Check if the root of this tree is terminal."""
         return (not self.root.clades)
 
     # Convention from SeqRecord and Alignment classes
@@ -938,6 +949,7 @@ class Tree(TreeElement, TreeMixin):
 
         :param format_spec: a lower-case string supported by `Bio.Phylo.write`
             as an output file format.
+
         """
         if format_spec:
             from Bio._py3k import StringIO
@@ -959,9 +971,9 @@ class Tree(TreeElement, TreeMixin):
     # Pretty-printer for the entire tree hierarchy
 
     def __str__(self):
-        """String representation of the entire tree.
+        """Return a string representation of the entire tree.
 
-        Serializes each sub-clade recursively using ``repr`` to create a summary
+        Serialize each sub-clade recursively using ``repr`` to create a summary
         of the object structure.
         """
         TAB = '    '
@@ -1008,10 +1020,12 @@ class Clade(TreeElement, TreeMixin):
             The display color of the branch and descendents.
         width : number
             The display width of the branch and descendents.
+
     """
 
     def __init__(self, branch_length=None, name=None, clades=None,
                  confidence=None, color=None, width=None):
+        """Define parameters for the Clade tree."""
         self.branch_length = branch_length
         self.name = name
         self.clades = clades or []
@@ -1025,7 +1039,7 @@ class Clade(TreeElement, TreeMixin):
         return self
 
     def is_terminal(self):
-        """True if this is a terminal (leaf) node."""
+        """Check if this is a terminal (leaf) node."""
         return (not self.clades)
 
     # Sequence-type behavior methods
@@ -1044,7 +1058,7 @@ class Clade(TreeElement, TreeMixin):
         return iter(self.clades)
 
     def __len__(self):
-        """Number of clades directy under the root."""
+        """Return the number of clades directy under the root."""
         return len(self.clades)
 
     # Python 3:
@@ -1060,6 +1074,7 @@ class Clade(TreeElement, TreeMixin):
     __nonzero__ = __bool__
 
     def __str__(self):
+        """Return name of the class instance."""
         if self.name:
             return _utils.trim_str(self.name, 40, '...')
         return self.__class__.__name__
@@ -1139,6 +1154,7 @@ class BranchColor(object):
         }
 
     def __init__(self, red, green, blue):
+        """Initialize BranchColor for a tree."""
         for color in (red, green, blue):
             assert (isinstance(color, int) and
                     0 <= color <= 255
@@ -1173,22 +1189,24 @@ class BranchColor(object):
         The returned string is suitable for use in HTML/CSS, as a color
         parameter in matplotlib, and perhaps other situations.
 
-        Example:
+        Examples
+        --------
+        >>> bc = BranchColor(12, 200, 100)
+        >>> bc.to_hex()
+        '#0cc864'
 
-            >>> bc = BranchColor(12, 200, 100)
-            >>> bc.to_hex()
-            '#0cc864'
         """
         return "#%02x%02x%02x" % (self.red, self.green, self.blue)
 
     def to_rgb(self):
         """Return a tuple of RGB values (0 to 255) representing this color.
 
-        Example:
+        Examples
+        --------
+        >>> bc = BranchColor(255, 165, 0)
+        >>> bc.to_rgb()
+        (255, 165, 0)
 
-            >>> bc = BranchColor(255, 165, 0)
-            >>> bc.to_rgb()
-            (255, 165, 0)
         """
         return (self.red, self.green, self.blue)
 

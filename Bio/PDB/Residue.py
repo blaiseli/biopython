@@ -6,6 +6,8 @@
 """Residue class, used by Structure objects."""
 
 # My Stuff
+import warnings
+from Bio import BiopythonDeprecationWarning
 from Bio.PDB.PDBExceptions import PDBConstructionException
 from Bio.PDB.Entity import Entity, DisorderedEntityWrapper
 
@@ -21,52 +23,18 @@ class Residue(Entity):
     """Represents a residue. A Residue object stores atoms."""
 
     def __init__(self, id, resname, segid):
+        """Initialize the class."""
         self.level = "R"
         self.disordered = 0
         self.resname = resname
         self.segid = segid
         Entity.__init__(self, id)
 
-    # Special methods
-
     def __repr__(self):
         resname = self.get_resname()
         hetflag, resseq, icode = self.get_id()
         full_id = (resname, hetflag, resseq, icode)
         return "<Residue %s het=%s resseq=%s icode=%s>" % full_id
-
-    # Private methods
-
-    def _sort(self, a1, a2):
-        """Sort the Atom objects.
-
-        Atoms are sorted alphabetically according to their name,
-        but N, CA, C, O always come first.
-
-        Arguments:
-        o a1, a2 - Atom objects
-        """
-        name1 = a1.get_name()
-        name2 = a2.get_name()
-        if name1 == name2:
-            return(cmp(a1.get_altloc(), a2.get_altloc()))
-        if name1 in _atom_name_dict:
-            index1 = _atom_name_dict[name1]
-        else:
-            index1 = None
-        if name2 in _atom_name_dict:
-            index2 = _atom_name_dict[name2]
-        else:
-            index2 = None
-        if index1 and index2:
-            return cmp(index1, index2)
-        if index1:
-            return -1
-        if index2:
-            return 1
-        return cmp(name1, name2)
-
-    # Public methods
 
     def add(self, atom):
         """Add an Atom object.
@@ -81,7 +49,17 @@ class Residue(Entity):
         Entity.add(self, atom)
 
     def sort(self):
-        self.child_list.sort(self._sort)
+        """Sort child atoms.
+
+        Atoms N, CA, C, O always come first, thereafter alphabetically
+        by name, with any alternative location specifier for disordered
+        atoms (altloc) as a tie-breaker.
+        """
+        warnings.warn("The custom sort() method will be removed in the "
+                      "future in favour of rich comparison methods. Use the "
+                      "built-in sorted() function instead.",
+                      BiopythonDeprecationWarning)
+        self.child_list.sort()
 
     def flag_disordered(self):
         """Set the disordered flag."""
@@ -95,7 +73,7 @@ class Residue(Entity):
         return self.resname
 
     def get_unpacked_list(self):
-        """Returns the list of all atoms, unpack DisorderedAtoms."""
+        """Return the list of all atoms, unpack DisorderedAtoms."""
         atom_list = self.get_list()
         undisordered_atom_list = []
         for atom in atom_list:
@@ -108,7 +86,14 @@ class Residue(Entity):
     def get_segid(self):
         return self.segid
 
+    def get_atoms(self):
+        for a in self:
+            yield a
+
     def get_atom(self):
+        warnings.warn("`get_atom` has been deprecated and we intend to remove it"
+                      " in a future release of Biopython. Please use `get_atoms` instead.",
+                     BiopythonDeprecationWarning)
         for a in self:
             yield a
 
@@ -119,7 +104,9 @@ class DisorderedResidue(DisorderedEntityWrapper):
     It is used to represent point mutations (e.g. there is a Ser 60 and a Cys 60
     residue, each with 50 % occupancy).
     """
+
     def __init__(self, id):
+        """Initialize the class."""
         DisorderedEntityWrapper.__init__(self, id)
 
     def __repr__(self):
@@ -151,7 +138,8 @@ class DisorderedResidue(DisorderedEntityWrapper):
         """Add a residue object and use its resname as key.
 
         Arguments:
-        o residue - Residue object
+         - residue - Residue object
+
         """
         resname = residue.get_resname()
         # add chain parent to residue

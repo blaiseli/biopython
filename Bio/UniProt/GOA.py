@@ -222,7 +222,7 @@ def _gpa11iterator(handle):
 
 
 def gpa_iterator(handle):
-    """Wrapper function: read GPA format files.
+    """Read GPA format files.
 
     This function should be called to read a
     gene_association.goa_uniprot file. Reads the first record and
@@ -320,7 +320,7 @@ def _gaf20byproteiniterator(handle):
 
 
 def gafbyproteiniterator(handle):
-    """Iterates over records in a gene association file.
+    """Iterate over records in a gene association file.
 
     Returns a list of all consecutive records with the same DB_Object_ID
     This function should be called to read a
@@ -362,13 +362,23 @@ def gafiterator(handle):
     >>> Synonym = {'Synonym': set(['YA19A_YEAST', 'YAL019W-A'])}
     >>> Taxon_ID = {'Taxon_ID': set(['taxon:559292'])}
     >>> with open('UniProt/goa_yeast.gaf', 'r') as handle:
-    ...     for inrec in gafiterator(handle):
-    ...         if record_has(inrec, Taxon_ID) and record_has(inrec, Evidence) and record_has(inrec, Synonym):
-    ...             print(inrec['DB_Object_Name'], inrec['Evidence'], inrec['Synonym'], inrec['Taxon_ID'])
+    ...     for rec in gafiterator(handle):
+    ...         if record_has(rec, Taxon_ID) and record_has(rec, Evidence) and record_has(rec, Synonym):
+    ...             for key in ('DB_Object_Name', 'Evidence', 'Synonym', 'Taxon_ID'):
+    ...                 print(rec[key])
     ...
-    Putative uncharacterized protein YAL019W-A ND ['YA19A_YEAST', 'YAL019W-A'] ['taxon:559292']
-    Putative uncharacterized protein YAL019W-A ND ['YA19A_YEAST', 'YAL019W-A'] ['taxon:559292']
-    Putative uncharacterized protein YAL019W-A ND ['YA19A_YEAST', 'YAL019W-A'] ['taxon:559292']
+    Putative uncharacterized protein YAL019W-A
+    ND
+    ['YA19A_YEAST', 'YAL019W-A']
+    ['taxon:559292']
+    Putative uncharacterized protein YAL019W-A
+    ND
+    ['YA19A_YEAST', 'YAL019W-A']
+    ['taxon:559292']
+    Putative uncharacterized protein YAL019W-A
+    ND
+    ['YA19A_YEAST', 'YAL019W-A']
+    ['taxon:559292']
 
     """
     inline = handle.readline()
@@ -418,7 +428,7 @@ def writebyproteinrec(outprotrec, handle, fields=GAF20FIELDS):
 
 
 def record_has(inrec, fieldvals):
-    """Accepts a record, and a dictionary of field values.
+    """Accept a record, and a dictionary of field values.
 
     The format is {'field_name': set([val1, val2])}.
     If any field in the record has  a matching value, the function returns

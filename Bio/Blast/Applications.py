@@ -24,7 +24,7 @@ For further details, see:
 
 Camacho et al. BLAST+: architecture and applications
 BMC Bioinformatics 2009, 10:421
-doi:10.1186/1471-2105-10-421
+https://doi.org/10.1186/1471-2105-10-421
 """
 from __future__ import print_function
 
@@ -38,6 +38,7 @@ class _NcbibaseblastCommandline(AbstractCommandline):
     common to all the BLAST tools (blastn, rpsblast, rpsblast, etc
     AND blast_formatter).
     """
+
     def __init__(self, cmd=None, **kwargs):
         assert cmd is not None
         extra_parameters = [
@@ -98,7 +99,10 @@ class _NcbibaseblastCommandline(AbstractCommandline):
         AbstractCommandline.__init__(self, cmd, **kwargs)
 
     def _validate_incompatibilities(self, incompatibles):
-        """Used by the BLAST+ _validate method (PRIVATE)."""
+        """Validate parameters for incompatibilities (PRIVATE).
+
+        Used by the _validate method.
+        """
         for a in incompatibles:
             if self._get_parameter(a):
                 for b in incompatibles[a]:
@@ -113,6 +117,7 @@ class _NcbiblastCommandline(_NcbibaseblastCommandline):
     This is provided for subclassing, it deals with shared options
     common to all the BLAST tools (blastn, rpsblast, rpsblast, etc).
     """
+
     def __init__(self, cmd=None, **kwargs):
         assert cmd is not None
         extra_parameters = [
@@ -150,7 +155,8 @@ class _NcbiblastCommandline(_NcbibaseblastCommandline):
             _Option(["-gilist", "gilist"],
                     """Restrict search of database to list of GI's.
 
-                    Incompatible with: negative_gilist, seqidlist, remote, subject, subject_loc""",
+                    Incompatible with: negative_gilist, seqidlist, negative_seqidlist,
+                    remote, subject, subject_loc""",
                     filename=True,
                     equate=False),
             _Option(["-negative_gilist", "negative_gilist"],
@@ -163,6 +169,12 @@ class _NcbiblastCommandline(_NcbibaseblastCommandline):
                     """Restrict search of database to list of SeqID's.
 
                     Incompatible with: gilist, negative_gilist, remote, subject, subject_loc""",
+                    filename=True,
+                    equate=False),
+            _Option(["-negative_seqidlist", "negative_seqidlist"],
+                    """Restrict search of database to everything except the listed SeqID's.
+
+                    Incompatible with: gilist, seqidlist, remote, subject, subject_loc""",
                     filename=True,
                     equate=False),
             _Option(["-entrez_query", "entrez_query"],
@@ -264,6 +276,7 @@ class _Ncbiblast2SeqCommandline(_NcbiblastCommandline):
     common to all the BLAST tools supporting two-sequence BLAST
     (blastn, psiblast, etc) but not rpsblast or rpstblastn.
     """
+
     def __init__(self, cmd=None, **kwargs):
         assert cmd is not None
         extra_parameters = [
@@ -278,7 +291,9 @@ class _Ncbiblast2SeqCommandline(_NcbiblastCommandline):
             _Option(["-subject", "subject"],
                     """Subject sequence(s) to search.
 
-                    Incompatible with: db, gilist, negative_gilist.
+                    Incompatible with: db, gilist, seqidlist, negative_gilist,
+                    negative_seqidlist, db_soft_mask, db_hard_mask
+
                     See also subject_loc.""",
                     filename=True,
                     equate=False),
@@ -286,7 +301,7 @@ class _Ncbiblast2SeqCommandline(_NcbiblastCommandline):
                     """Location on the subject sequence (Format: start-stop).
 
                     Incompatible with: db, gilist, seqidlist, negative_gilist,
-                    db_soft_mask, db_hard_mask, remote.
+                    negative_seqidlist, db_soft_mask, db_hard_mask, remote.
 
                     See also subject.""",
                     equate=False),
@@ -339,6 +354,7 @@ class _NcbiblastMain2SeqCommandline(_Ncbiblast2SeqCommandline):
     common to the main BLAST tools blastp, blastn, blastx, tblastx, tblastn
     but not psiblast, rpsblast or rpstblastn.
     """
+
     def __init__(self, cmd=None, **kwargs):
         assert cmd is not None
         extra_parameters = [
@@ -392,7 +408,9 @@ class NcbiblastpCommandline(_NcbiblastMain2SeqCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="blastp", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # General search options:
             _Option(["-task", "task"],
@@ -455,7 +473,9 @@ class NcbiblastnCommandline(_NcbiblastMain2SeqCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="blastn", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # Input query options:
             _Option(["-strand", "strand"],
@@ -571,7 +591,9 @@ class NcbiblastxCommandline(_NcbiblastMain2SeqCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="blastx", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # Input query options:
             _Option(["-task", "task"],
@@ -656,7 +678,9 @@ class NcbitblastnCommandline(_NcbiblastMain2SeqCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="tblastn", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # General search options:
             _Option(["-task", "task"],
@@ -739,7 +763,9 @@ class NcbitblastxCommandline(_NcbiblastMain2SeqCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="tblastx", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # Input query options:
             _Option(["-strand", "strand"],
@@ -797,7 +823,9 @@ class NcbipsiblastCommandline(_Ncbiblast2SeqCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="psiblast", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # General search options:
             _Option(["-matrix", "matrix"],
@@ -925,7 +953,9 @@ class NcbirpsblastCommandline(_NcbiblastCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="rpsblast", **kwargs):
+        """Initialize the class."""
         # TODO - remove the -word_size argument as per BLAST+ 2.2.30
         # (BLAST team say it should never have been included, since
         # the word size is set when building the domain database.)
@@ -1004,7 +1034,9 @@ class NcbirpstblastnCommandline(_NcbiblastCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="rpstblastn", **kwargs):
+        """Initialize the class."""
         # TODO - remove the -word_size argument as per BLAST+ 2.2.30
         # (BLAST team say it should never have been included, since
         # the word size is set when building the domain database.)
@@ -1080,7 +1112,9 @@ class NcbiblastformatterCommandline(_NcbibaseblastCommandline):
     (instead -rid is a mandatory argument), and is not supported by this
     wrapper.
     """
+
     def __init__(self, cmd="blast_formatter", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # Input options
             _Option(["-rid", "rid"],
@@ -1121,7 +1155,9 @@ class NcbideltablastCommandline(_Ncbiblast2SeqCommandline):
     You would typically run the command line with cline() or via the Python
     subprocess module, as described in the Biopython tutorial.
     """
+
     def __init__(self, cmd="deltablast", **kwargs):
+        """Initialize the class."""
         self.parameters = [
             # General search options:
             _Option(["-matrix", "matrix"],
@@ -1202,6 +1238,7 @@ def _test():
     """Run the Bio.Blast.Applications module's doctests."""
     import doctest
     doctest.testmod(verbose=1)
+
 
 if __name__ == "__main__":
     # Run the doctests

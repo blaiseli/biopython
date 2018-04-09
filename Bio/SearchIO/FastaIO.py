@@ -5,7 +5,7 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
-"""Bio.SearchIO support for Bill Pearson's FASTA tools.
+r"""Bio.SearchIO support for Bill Pearson's FASTA tools.
 
 This module adds support for parsing FASTA outputs. FASTA is a suite of
 programs that finds regions of local or global similarity between protein
@@ -152,7 +152,7 @@ _STATE_CONS_BLOCK = 3
 
 
 def _set_qresult_hits(qresult, hit_rows=()):
-    """Helper function for appending Hits without alignments into QueryResults."""
+    """Append Hits without alignments into QueryResults (PRIVATE)."""
     for hit_row in hit_rows:
         hit_id, remainder = hit_row.split(' ', 1)
         # TODO: parse hit and hsp properties properly; by dealing with:
@@ -171,7 +171,7 @@ def _set_qresult_hits(qresult, hit_rows=()):
 
 
 def _set_hsp_seqs(hsp, parsed, program):
-    """Helper function for the main parsing code.
+    """Set HSPs sequences (PRIVATE).
 
     :param hsp: HSP whose properties will be set
     :type hsp: HSP
@@ -231,7 +231,7 @@ def _set_hsp_seqs(hsp, parsed, program):
 
 
 def _get_aln_slice_coords(parsed_hsp):
-    """Helper function for the main parsing code.
+    """Get HSPs sequences (PRIVATE).
 
     To get the actual pairwise alignment sequences, we must first
     translate the un-gapped sequence based coordinates into positions
@@ -266,6 +266,7 @@ class FastaM10Parser(object):
     """Parser for Bill Pearson's FASTA suite's -m 10 output."""
 
     def __init__(self, handle, __parse_hit_table=False):
+        """Initialize the class."""
         self.handle = UndoHandle(handle)
         self._preamble = self._parse_preamble()
 
@@ -276,7 +277,7 @@ class FastaM10Parser(object):
             yield qresult
 
     def _parse_preamble(self):
-        """Parses the Fasta preamble for Fasta flavor and version."""
+        """Parse the Fasta preamble for Fasta flavor and version (PRIVATE)."""
         preamble = {}
         while True:
             self.line = self.handle.readline()
@@ -295,7 +296,7 @@ class FastaM10Parser(object):
         return preamble
 
     def __parse_hit_table(self):
-        """Parses hit table rows."""
+        """Parse hit table rows."""
         # move to the first row
         self.line = self.handle.readline()
         # parse hit table until we see an empty line
@@ -390,6 +391,10 @@ class FastaM10Parser(object):
         state = _STATE_NONE
         strand = None
         hsp_list = []
+        hsp = None
+        parsed_hsp = None
+        hit_desc = None
+        seq_len = None
         while True:
             peekline = self.handle.peekline()
             # yield hit if we've reached the start of a new query or
@@ -513,6 +518,7 @@ class FastaM10Indexer(SearchIndexer):
     _parser = FastaM10Parser
 
     def __init__(self, filename):
+        """Initialize the class."""
         SearchIndexer.__init__(self, filename)
         self._handle = UndoHandle(self._handle)
 
@@ -534,8 +540,7 @@ class FastaM10Indexer(SearchIndexer):
                 start_offset = end_offset - len(line)
             # yield whenever we encounter a new query or at the end of the file
             if qresult_key is not None:
-                if (not peekline.startswith(query_mark) and
-                    query_mark in peekline) or not line:
+                if (not peekline.startswith(query_mark) and query_mark in peekline) or not line:
                     yield qresult_key, start_offset, end_offset - start_offset
                     if not line:
                         break

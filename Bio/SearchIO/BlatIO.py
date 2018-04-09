@@ -137,7 +137,7 @@ BlatIO provides the following attribute-column mapping:
 |                | query_start_all         | qStarts, start coordinate of each |
 |                |                         | query fragment                    |
 |                +-------------------------+-----------------------------------+
-|                | len [1]                 | block count, the number of blocks |
+|                | len [*]_                | block count, the number of blocks |
 |                |                         | in the alignment                  |
 +----------------+-------------------------+-----------------------------------+
 | HSPFragment    | hit                     | hit sequence, if present          |
@@ -175,7 +175,7 @@ Finally, the default HSP and HSPFragment properties are also provided. See the
 HSP and HSPFragment documentation for more details on these properties.
 
 
-.. [1] You can obtain the number of blocks / fragments in the HSP by invoking
+.. [*] You can obtain the number of blocks / fragments in the HSP by invoking
    ``len`` on the HSP
 
 """
@@ -200,7 +200,7 @@ _RE_ROW_CHECK_IDX = re.compile(_as_bytes(_PTR_ROW_CHECK))
 
 
 def _list_from_csv(csv_string, caster=None):
-    """Transforms the given comma-separated string into a list.
+    """Transform the given comma-separated string into a list (PRIVATE).
 
     :param csv_string: comma-separated input string
     :type csv_string: string
@@ -216,7 +216,7 @@ def _list_from_csv(csv_string, caster=None):
 
 
 def _reorient_starts(starts, blksizes, seqlen, strand):
-    """Reorients block starts into the opposite strand's coordinates.
+    """Reorients block starts into the opposite strand's coordinates (PRIVATE).
 
     :param starts: start coordinates
     :type starts: list [int]
@@ -283,8 +283,10 @@ def _calc_score(psl, is_protein):
     # calculates score
     # adapted from http://genome.ucsc.edu/FAQ/FAQblat.html#blat4
     size_mul = 3 if is_protein else 1
-    return size_mul * (psl['matches'] + (psl['repmatches'] >> 1)) - \
-            size_mul * psl['mismatches'] - psl['qnuminsert'] - psl['tnuminsert']
+    return (size_mul * (psl['matches'] + (psl['repmatches'] >> 1))
+            - size_mul * psl['mismatches']
+            - psl['qnuminsert']
+            - psl['tnuminsert'])
 
 
 def _create_hsp(hid, qid, psl):
@@ -302,13 +304,15 @@ def _create_hsp(hid, qid, psl):
     except IndexError:
         hstrand = 1  # hit strand defaults to plus
 
+    blocksize_multiplier = 3 if is_protein else 1
     # query block starts
     qstarts = _reorient_starts(psl['qstarts'],
             psl['blocksizes'], psl['qsize'], qstrand)
     # hit block starts
     if len(psl['strand']) == 2:
         hstarts = _reorient_starts(psl['tstarts'],
-                psl['blocksizes'], psl['tsize'], hstrand)
+                [blocksize_multiplier * i for i in psl['blocksizes']],
+                psl['tsize'], hstrand)
     else:
         hstarts = psl['tstarts']
     # set query and hit coords
@@ -316,7 +320,7 @@ def _create_hsp(hid, qid, psl):
     assert len(qstarts) == len(hstarts) == len(psl['blocksizes'])
     query_range_all = list(zip(qstarts, [x + y for x, y in
                                          zip(qstarts, psl['blocksizes'])]))
-    hit_range_all = list(zip(hstarts, [x + y for x, y in
+    hit_range_all = list(zip(hstarts, [x + y * blocksize_multiplier for x, y in
                                        zip(hstarts, psl['blocksizes'])]))
     # check length of sequences and coordinates, all must match
     if 'tseqs' in psl and 'qseqs' in psl:
@@ -353,7 +357,8 @@ def _create_hsp(hid, qid, psl):
     assert hsp.hit_start == psl['tstart']
     assert hsp.hit_end == psl['tend']
     # and check block spans as well
-    assert hsp.query_span_all == hsp.hit_span_all == psl['blocksizes']
+    hit_spans = [span / blocksize_multiplier for span in hsp.hit_span_all]
+    assert hit_spans == hsp.query_span_all == psl['blocksizes']
     # set its attributes
     hsp.match_num = psl['matches']
     hsp.mismatch_num = psl['mismatches']
@@ -377,10 +382,10 @@ def _create_hsp(hid, qid, psl):
 
 
 class BlatPslParser(object):
-
     """Parser for the BLAT PSL format."""
 
     def __init__(self, handle, pslx=False):
+        """Initialize the class."""
         self.handle = handle
         self.line = self.handle.readline()
         self.pslx = pslx
@@ -388,14 +393,14 @@ class BlatPslParser(object):
     def __iter__(self):
         # break out if it's an empty file
         if not self.line:
-            raise StopIteration
+            return
 
         # read through header
         # this assumes that the result row match the regex
         while not re.search(_RE_ROW_CHECK, self.line.strip()):
             self.line = self.handle.readline()
             if not self.line:
-                raise StopIteration
+                return
 
         # parse into query results
         for qresult in self._parse_qresult():
@@ -403,7 +408,7 @@ class BlatPslParser(object):
             yield qresult
 
     def _parse_row(self):
-        """Returns a dictionary of parsed column values."""
+        """Return a dictionary of parsed column values (PRIVATE)."""
         assert self.line
         cols = [x for x in self.line.strip().split('\t') if x]
         self._validate_cols(cols)
@@ -445,7 +450,7 @@ class BlatPslParser(object):
             "Expected 23 tab-separated columns, found %i" % (self.line, len(cols))
 
     def _parse_qresult(self):
-        """Generator function that returns QueryResult objects."""
+        """Yield QueryResult objects (PRIVATE)."""
         # state values, determines what to do for each line
         state_EOF = 0
         state_QRES_NEW = 1
@@ -515,16 +520,16 @@ class BlatPslParser(object):
 
 
 class BlatPslIndexer(SearchIndexer):
-
     """Indexer class for BLAT PSL output."""
 
     _parser = BlatPslParser
 
     def __init__(self, filename, pslx=False):
+        """Initialize the class."""
         SearchIndexer.__init__(self, filename, pslx=pslx)
 
     def __iter__(self):
-        """Iterates over the file handle; yields key, start offset, and length."""
+        """Iterate over the file handle; yields key, start offset, and length."""
         handle = self._handle
         handle.seek(0)
         # denotes column location for query identifier
@@ -540,7 +545,7 @@ class BlatPslIndexer(SearchIndexer):
             start_offset = handle.tell()
             line = handle.readline()
             if not line:
-                raise StopIteration
+                return
 
         # and index the qresults
         while True:
@@ -565,7 +570,7 @@ class BlatPslIndexer(SearchIndexer):
                 break
 
     def get_raw(self, offset):
-        """Returns raw bytes string of a QueryResult object from the given offset."""
+        """Return raw bytes string of a QueryResult object from the given offset."""
         handle = self._handle
         handle.seek(offset)
         query_id_idx = 9
@@ -590,10 +595,10 @@ class BlatPslIndexer(SearchIndexer):
 
 
 class BlatPslWriter(object):
-
     """Writer for the blat-psl format."""
 
     def __init__(self, handle, header=False, pslx=False):
+        """Initialize the class."""
         self.handle = handle
         # flag for writing header or not
         self.header = header
@@ -631,7 +636,7 @@ class BlatPslWriter(object):
         return header
 
     def _build_row(self, qresult):
-        """Returns a string or one row or more of the QueryResult object."""
+        """Return a string or one row or more of the QueryResult object (PRIVATE)."""
         # For now, our writer writes the row according to the order in
         # the QueryResult and Hit objects.
         # This is different from BLAT's native output, where the rows are
@@ -641,6 +646,9 @@ class BlatPslWriter(object):
 
         for hit in qresult:
             for hsp in hit.hsps:
+
+                query_is_protein = getattr(hsp, "query_is_protein", False)
+                blocksize_multiplier = 3 if query_is_protein else 1
 
                 line = []
                 line.append(hsp.match_num)
@@ -653,7 +661,9 @@ class BlatPslWriter(object):
                 line.append(hsp.hit_gap_num)
 
                 # check spans
-                assert hsp.query_span_all == hsp.hit_span_all
+                eff_query_spans = [blocksize_multiplier * s for s in hsp.query_span_all]
+                if hsp.hit_span_all != eff_query_spans:
+                    raise ValueError("HSP hit span and query span values do not match.")
                 block_sizes = hsp.query_span_all
 
                 # set strand and starts

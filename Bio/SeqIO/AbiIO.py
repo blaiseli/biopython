@@ -10,7 +10,7 @@ ABI is the format used by Applied Biosystem's sequencing machines to store
 sequencing results.
 
 For more details on the format specification, visit:
-http://www.appliedbiosystem.com/support/software_community/ABIF_File_Format.pdf
+http://www6.appliedbiosystems.com/support/software_community/ABIF_File_Format.pdf
 
 """
 
@@ -331,8 +331,7 @@ for tag in _INSTRUMENT_SPECIFIC_TAGS.values():
 
 
 def AbiIterator(handle, alphabet=None, trim=False):
-    """Iterator for the Abi file format.
-    """
+    """Return an iterator for the Abi file format."""
     # raise exception is alphabet is not dna
     if alphabet is not None:
         if isinstance(Alphabet._get_base_alphabet(alphabet),
@@ -353,7 +352,7 @@ def AbiIterator(handle, alphabet=None, trim=False):
     marker = handle.read(4)
     if not marker:
         # handle empty file gracefully
-        raise StopIteration
+        return
     if marker != b"ABIF":
         raise IOError('File should start ABIF, not %r' % marker)
 
@@ -402,15 +401,15 @@ def AbiIterator(handle, alphabet=None, trim=False):
     annot['abif_raw'] = raw
 
     # fsa check
-    is_fsa_file = set(['SpNm1', 'LIMS1', 'CTID1']).issubset(raw)
+    is_fsa_file = all([tn not in raw for tn in ('PBAS1', 'PBAS2')])
 
     if is_fsa_file:
         try:
             file_name = basename(handle.name).replace('.fsa', '')
         except AttributeError:
             file_name = ""
-        sample_id = raw['LIMS1']
-        description = raw['CTID1']
+        sample_id = raw.get('LIMS1', '<unknown id>')
+        description = raw.get('CTID1', '<unknown description>')
         record = SeqRecord(Seq(''),
                            id=sample_id,
                            name=file_name,
@@ -436,14 +435,12 @@ def AbiIterator(handle, alphabet=None, trim=False):
 
 
 def _AbiTrimIterator(handle):
-    """Iterator for the Abi file format that yields trimmed SeqRecord objects.
-    """
+    """Return an iterator for the Abi file format that yields trimmed SeqRecord objects (PRIVATE)."""
     return AbiIterator(handle, trim=True)
 
 
 def _abi_parse_header(header, handle):
-    """Generator that returns directory contents.
-    """
+    """Return directory contents (PRIVATE)."""
     # header structure (after ABIF marker):
     # file version, tag name, tag number,
     # element type code, element size, number of elements
@@ -483,7 +480,7 @@ def _abi_parse_header(header, handle):
 
 
 def _abi_trim(seq_record):
-    """Trims the sequence using Richard Mott's modified trimming algorithm.
+    """Trims the sequence using Richard Mott's modified trimming algorithm (PRIVATE).
 
     Arguments:
         - seq_record - SeqRecord object to be trimmed.
@@ -494,7 +491,7 @@ def _abi_trim(seq_record):
 
     More about the trimming algorithm:
     http://www.phrap.org/phredphrap/phred.html
-    http://www.clcbio.com/manual/genomics/Quality_abif_trimming.html
+    http://resources.qiagenbioinformatics.com/manuals/clcgenomicsworkbench/650/Quality_trimming.html
     """
     start = False   # flag for starting position of trimmed sequence
     segment = 20    # minimum sequence length
@@ -532,12 +529,13 @@ def _abi_trim(seq_record):
 
 
 def _parse_tag_data(elem_code, elem_num, raw_data):
-    """Returns single data value.
+    """Return single data value (PRIVATE).
 
     Arguments:
-        - elem_code - What kind of data
-        - elem_num - How many data points
-        - raw_data - abi file object from which the tags would be unpacked
+     - elem_code - What kind of data
+     - elem_num - How many data points
+     - raw_data - abi file object from which the tags would be unpacked
+
     """
     if elem_code in _BYTEFMT:
         # because '>1s' unpack differently from '>s'
@@ -572,6 +570,7 @@ def _parse_tag_data(elem_code, elem_num, raw_data):
             return data
     else:
         return None
+
 
 if __name__ == '__main__':
     pass

@@ -11,7 +11,7 @@ import copy
 
 from Bio.PDB.Entity import DisorderedEntityWrapper
 from Bio.PDB.PDBExceptions import PDBConstructionWarning
-from Bio.PDB.Vector import Vector
+from Bio.PDB.vectors import Vector
 from Bio.Data import IUPACData
 
 
@@ -25,27 +25,27 @@ class Atom(object):
         and (optionally) anisotropic B factor and standard deviations of
         B factor and positions.
 
-        @param name: atom name (eg. "CA"). Note that spaces are normally stripped.
-        @type name: string
+        :param name: atom name (eg. "CA"). Note that spaces are normally stripped.
+        :type name: string
 
-        @param coord: atomic coordinates (x,y,z)
-        @type coord: Numeric array (Float0, size 3)
+        :param coord: atomic coordinates (x,y,z)
+        :type coord: Numeric array (Float0, size 3)
 
-        @param bfactor: isotropic B factor
-        @type bfactor: number
+        :param bfactor: isotropic B factor
+        :type bfactor: number
 
-        @param occupancy: occupancy (0.0-1.0)
-        @type occupancy: number
+        :param occupancy: occupancy (0.0-1.0)
+        :type occupancy: number
 
-        @param altloc: alternative location specifier for disordered atoms
-        @type altloc: string
+        :param altloc: alternative location specifier for disordered atoms
+        :type altloc: string
 
-        @param fullname: full atom name, including spaces, e.g. " CA ". Normally
-        these spaces are stripped from the atom name.
-        @type fullname: string
+        :param fullname: full atom name, including spaces, e.g. " CA ". Normally
+                         these spaces are stripped from the atom name.
+        :type fullname: string
 
-        @param element: atom element, e.g. "C" for Carbon, "HG" for mercury,
-        @type element: uppercase string (or None if unknown)
+        :param element: atom element, e.g. "C" for Carbon, "HG" for mercury,
+        :type element: uppercase string (or None if unknown)
         """
         self.level = "A"
         # Reference to the residue
@@ -70,8 +70,95 @@ class Atom(object):
         self.element = self._assign_element(element)
         self.mass = self._assign_atom_mass()
 
+        # For atom sorting (protein backbone atoms first)
+        self._sorting_keys = {'N': 0, 'CA': 1, 'C': 2, 'O': 3}
+
+    # Sorting Methods
+    # standard across different objects and allows direct comparison
+    def __eq__(self, other):
+        """Test equality."""
+        if isinstance(other, Atom):
+            return self.full_id[1:] == other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __ne__(self, other):
+        """Test inequality."""
+        if isinstance(other, Atom):
+            return self.full_id[1:] != other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __gt__(self, other):
+        """Test greater then."""
+        if isinstance(other, Atom):
+            if self.parent != other.parent:
+                return self.parent > other.parent
+            order_s = self._sorting_keys.get(self.name, 4)
+            order_o = self._sorting_keys.get(other.name, 4)
+            if order_s != order_o:
+                return order_s > order_o
+            elif self.name != other.name:
+                return self.name > other.name
+            else:
+                return self.altloc > other.altloc
+        else:
+            return NotImplemented
+
+    def __ge__(self, other):
+        """Test greater or equal."""
+        if isinstance(other, Atom):
+            if self.parent != other.parent:
+                return self.parent >= other.parent
+            order_s = self._sorting_keys.get(self.name, 4)
+            order_o = self._sorting_keys.get(other.name, 4)
+            if order_s != order_o:
+                return order_s >= order_o
+            elif self.name != other.name:
+                return self.name >= other.name
+            else:
+                return self.altloc >= other.altloc
+        else:
+            return NotImplemented
+
+    def __lt__(self, other):
+        """Test less than."""
+        if isinstance(other, Atom):
+            if self.parent != other.parent:
+                return self.parent < other.parent
+            order_s = self._sorting_keys.get(self.name, 4)
+            order_o = self._sorting_keys.get(other.name, 4)
+            if order_s != order_o:
+                return order_s < order_o
+            elif self.name != other.name:
+                return self.name < other.name
+            else:
+                return self.altloc < other.altloc
+        else:
+            return NotImplemented
+
+    def __le__(self, other):
+        """Test less or equal."""
+        if isinstance(other, Atom):
+            if self.parent != other.parent:
+                return self.parent <= other.parent
+            order_s = self._sorting_keys.get(self.name, 4)
+            order_o = self._sorting_keys.get(other.name, 4)
+            if order_s != order_o:
+                return order_s <= order_o
+            elif self.name != other.name:
+                return self.name <= other.name
+            else:
+                return self.altloc <= other.altloc
+        else:
+            return NotImplemented
+
+    # Hash method to allow uniqueness (set)
+    def __hash__(self):
+        return hash(self.get_full_id())
+
     def _assign_element(self, element):
-        """Tries to guess element from atom name if not recognised."""
+        """Guess element from atom name if not recognised (PRIVATE)."""
         if not element or element.capitalize() not in IUPACData.atom_weights:
             # Inorganic elements have their name shifted left by one position
             #  (is a convention in PDB, but not part of the standard).
@@ -115,11 +202,13 @@ class Atom(object):
     def __sub__(self, other):
         """Calculate distance between two atoms.
 
-        Example:
-            >>> distance=atom1-atom2
+        :param other: the other atom
+        :type other: L{Atom}
 
-        @param other: the other atom
-        @type other: L{Atom}
+        Examples
+        --------
+        >>> distance = atom1 - atom2
+
         """
         diff = self.coord - other.coord
         return numpy.sqrt(numpy.dot(diff, diff))
@@ -148,24 +237,24 @@ class Atom(object):
         of 3 positional, 1 B factor and 1 occupancy standard
         deviation.
 
-        @param sigatm_array: standard deviations of atomic parameters.
-        @type sigatm_array: Numeric array (length 5)
+        :param sigatm_array: standard deviations of atomic parameters.
+        :type sigatm_array: Numeric array (length 5)
         """
         self.sigatm_array = sigatm_array
 
     def set_siguij(self, siguij_array):
         """Set standard deviations of anisotropic temperature factors.
 
-        @param siguij_array: standard deviations of anisotropic temperature factors.
-        @type siguij_array: Numeric array (length 6)
+        :param siguij_array: standard deviations of anisotropic temperature factors.
+        :type siguij_array: Numeric array (length 6)
         """
         self.siguij_array = siguij_array
 
     def set_anisou(self, anisou_array):
         """Set anisotropic B factor.
 
-        @param anisou_array: anisotropic B factor.
-        @type anisou_array: Numeric array (length 6)
+        :param anisou_array: anisotropic B factor.
+        :type anisou_array: Numeric array (length 6)
         """
         self.anisou_array = anisou_array
 
@@ -187,8 +276,10 @@ class Atom(object):
 
         Arguments:
          - parent - Residue object
+
         """
         self.parent = parent
+        self.full_id = self.get_full_id()
 
     def detach_parent(self):
         """Remove reference to parent."""
@@ -255,24 +346,26 @@ class Atom(object):
     def transform(self, rot, tran):
         """Apply rotation and translation to the atomic coordinates.
 
-        Example:
-                >>> rotation=rotmat(pi, Vector(1, 0, 0))
-                >>> translation=array((0, 0, 1), 'f')
-                >>> atom.transform(rotation, translation)
+        :param rot: A right multiplying rotation matrix
+        :type rot: 3x3 Numeric array
 
-        @param rot: A right multiplying rotation matrix
-        @type rot: 3x3 Numeric array
+        :param tran: the translation vector
+        :type tran: size 3 Numeric array
 
-        @param tran: the translation vector
-        @type tran: size 3 Numeric array
+        Examples
+        --------
+        >>> rotation=rotmat(pi, Vector(1, 0, 0))
+        >>> translation=array((0, 0, 1), 'f')
+        >>> atom.transform(rotation, translation)
+
         """
         self.coord = numpy.dot(self.coord, rot) + tran
 
     def get_vector(self):
         """Return coordinates as Vector.
 
-        @return: coordinates as 3D vector
-        @rtype: Vector
+        :return: coordinates as 3D vector
+        :rtype: Bio.PDB.Vector class
         """
         x, y, z = self.coord
         return Vector(x, y, z)
@@ -300,17 +393,23 @@ class DisorderedAtom(DisorderedEntityWrapper):
     different Atom object can be selected by using the disordered_select(altloc)
     method.
     """
+
     def __init__(self, id):
         """Create DisorderedAtom.
 
         Arguments:
          - id - string, atom name
+
         """
         # TODO - make this a private attribute?
         self.last_occupancy = -999999
         DisorderedEntityWrapper.__init__(self, id)
 
     # Special methods
+    # Override parent class __iter__ method
+    def __iter__(self):
+        for i in self.disordered_get_list():
+            yield i
 
     def __repr__(self):
         return "<Disordered Atom %s>" % self.get_id()

@@ -29,23 +29,23 @@ supported_formats = {
 try:
     from Bio.Phylo import CDAOIO
     supported_formats['cdao'] = CDAOIO
-except:
+except ImportError:
     pass
 
 
 def parse(file, format, **kwargs):
-    """Iteratively parse a file and return each of the trees it contains.
+    """Parse a file iteratively, and yield each of the trees it contains.
 
     If a file only contains one tree, this still returns an iterable object that
     contains one element.
 
-    Example
-    -------
-
+    Examples
+    --------
     >>> trees = parse('../../Tests/PhyloXML/apaf.xml', 'phyloxml')
     >>> for tree in trees:
     ...     print(tree.rooted)
     True
+
     """
     with File.as_handle(file, 'r') as fp:
         for tree in getattr(supported_formats[format], 'parse')(fp, **kwargs):

@@ -27,12 +27,14 @@ class StructureBuilder(object):
     The StructureBuilder class is used by the PDBParser classes to
     translate a file to a Structure object.
     """
+
     def __init__(self):
+        """Initialize the class."""
         self.line_counter = 0
         self.header = {}
 
     def _is_completely_disordered(self, residue):
-        """Return 1 if all atoms in the residue have a non blank altloc."""
+        """Return 1 if all atoms in the residue have a non blank altloc (PRIVATE)."""
         atom_list = residue.get_unpacked_list()
         for atom in atom_list:
             altloc = atom.get_altloc()
@@ -49,33 +51,37 @@ class StructureBuilder(object):
         """Tracks line in the PDB file that is being parsed.
 
         Arguments:
-        o line_counter - int
+         - line_counter - int
+
         """
         self.line_counter = line_counter
 
     def init_structure(self, structure_id):
-        """Initiate a new Structure object with given id.
+        """Initialize a new Structure object with given id.
 
         Arguments:
-        o id - string
+         - id - string
+
         """
         self.structure = Structure(structure_id)
 
     def init_model(self, model_id, serial_num=None):
-        """Initiate a new Model object with given id.
+        """Create a new Model object with given id.
 
         Arguments:
-        o id - int
-        o serial_num - int
+         - id - int
+         - serial_num - int
+
         """
         self.model = Model(model_id, serial_num)
         self.structure.add(self.model)
 
     def init_chain(self, chain_id):
-        """Initiate a new Chain object with given id.
+        """Create a new Chain object with given id.
 
         Arguments:
-        o chain_id - string
+         - chain_id - string
+
         """
         if self.model.has_id(chain_id):
             self.chain = self.model[chain_id]
@@ -90,20 +96,21 @@ class StructureBuilder(object):
         """Flag a change in segid.
 
         Arguments:
-        o segid - string
+         - segid - string
+
         """
         self.segid = segid
 
     def init_residue(self, resname, field, resseq, icode):
-        """Initiate a new Residue object.
+        """Create a new Residue object.
 
         Arguments:
+         - resname - string, e.g. "ASN"
+         - field - hetero flag, "W" for waters, "H" for
+           hetero residues, otherwise blank.
+         - resseq - int, sequence identifier
+         - icode - string, insertion code
 
-            - resname - string, e.g. "ASN"
-            - field - hetero flag, "W" for waters, "H" for
-              hetero residues, otherwise blank.
-            - resseq - int, sequence identifier
-            - icode - string, insertion code
         """
         if field != " ":
             if field == "H":
@@ -164,16 +171,17 @@ class StructureBuilder(object):
 
     def init_atom(self, name, coord, b_factor, occupancy, altloc, fullname,
                   serial_number=None, element=None):
-        """Initiate a new Atom object.
+        """Create a new Atom object.
 
         Arguments:
-        o name - string, atom name, e.g. CA, spaces should be stripped
-        o coord - Numeric array (Float0, size 3), atomic coordinates
-        o b_factor - float, B factor
-        o occupancy - float
-        o altloc - string, alternative location specifier
-        o fullname - string, atom name including spaces, e.g. " CA "
-        o element - string, upper case, e.g. "HG" for mercury
+         - name - string, atom name, e.g. CA, spaces should be stripped
+         - coord - Numeric array (Float0, size 3), atomic coordinates
+         - b_factor - float, B factor
+         - occupancy - float
+         - altloc - string, alternative location specifier
+         - fullname - string, atom name including spaces, e.g. " CA "
+         - element - string, upper case, e.g. "HG" for mercury
+
         """
         residue = self.residue
         # if residue is None, an exception was generated during

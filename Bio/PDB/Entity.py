@@ -19,7 +19,9 @@ class Entity(object):
     Structure, Model, Chain and Residue are subclasses of Entity.
     It deals with storage and lookup.
     """
+
     def __init__(self, id):
+        """Initialize the class."""
         self._id = id
         self.full_id = None
         self.parent = None
@@ -43,30 +45,110 @@ class Entity(object):
         return self.detach_child(id)
 
     def __contains__(self, id):
-        """True if there is a child element with the given id."""
-        return (id in self.child_dict)
+        """Check if there is a child element with the given id."""
+        return id in self.child_dict
 
     def __iter__(self):
         """Iterate over children."""
         for child in self.child_list:
             yield child
 
+    # Generic id-based comparison methods considers all parents as well as children
+    # Works for all Entities - Atoms have comparable custom operators
+    def __eq__(self, other):
+        """Test for equality. This compares full_id including the IDs of all parents."""
+        if isinstance(other, type(self)):
+            if self.parent is None:
+                return self.id == other.id
+            else:
+                return self.full_id[1:] == other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __ne__(self, other):
+        """Test for inequality."""
+        if isinstance(other, type(self)):
+            if self.parent is None:
+                return self.id != other.id
+            else:
+                return self.full_id[1:] != other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __gt__(self, other):
+        """Test greater than."""
+        if isinstance(other, type(self)):
+            if self.parent is None:
+                return self.id > other.id
+            else:
+                return self.full_id[1:] > other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __ge__(self, other):
+        """Test greater or equal."""
+        if isinstance(other, type(self)):
+            if self.parent is None:
+                return self.id >= other.id
+            else:
+                return self.full_id[1:] >= other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __lt__(self, other):
+        """Test less than."""
+        if isinstance(other, type(self)):
+            if self.parent is None:
+                return self.id < other.id
+            else:
+                return self.full_id[1:] < other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __le__(self, other):
+        """Test less or equal."""
+        if isinstance(other, type(self)):
+            if self.parent is None:
+                return self.id <= other.id
+            else:
+                return self.full_id[1:] <= other.full_id[1:]
+        else:
+            return NotImplemented
+
+    def __hash__(self):
+        """Hash method to allow uniqueness (set)."""
+        return hash(self.full_id)
+
     # Private methods
 
     def _reset_full_id(self):
-        """Reset the full_id.
+        """Reset the full_id (PRIVATE).
 
-        Sets the full_id of this entity and
-        recursively of all its children to None.
-        This means that it will be newly generated
-        at the next call to get_full_id.
+        Resets the full_id of this entity and
+        recursively of all its children based on their ID.
         """
         for child in self:
             try:
                 child._reset_full_id()
             except AttributeError:
                 pass  # Atoms do not cache their full ids.
-        self.full_id = None
+        self.full_id = self._generate_full_id()
+
+    def _generate_full_id(self):
+        """Generate full_id.
+
+        Generate the full_id of the Entity based on its
+        Id and the IDs of the parents.
+        """
+        entity_id = self.get_id()
+        parts = [entity_id]
+        parent = self.get_parent()
+        while parent is not None:
+            entity_id = parent.get_id()
+            parts.append(entity_id)
+            parent = parent.get_parent()
+        parts.reverse()
+        return tuple(parts)
 
     # Public methods
 
@@ -109,6 +191,7 @@ class Entity(object):
     def set_parent(self, entity):
         """Set the parent Entity object."""
         self.parent = entity
+        self._reset_full_id()
 
     def detach_parent(self):
         """Detach the parent."""
@@ -151,8 +234,8 @@ class Entity(object):
         return copy(self.child_list)
 
     def has_id(self, id):
-        """True if a child with given id exists."""
-        return (id in self.child_dict)
+        """Check if a child with given id exists."""
+        return id in self.child_dict
 
     def get_parent(self):
         """Return the parent Entity object."""
@@ -183,31 +266,24 @@ class Entity(object):
         identifier is 10 and its insertion code "A".
         """
         if self.full_id is None:
-            entity_id = self.get_id()
-            l = [entity_id]
-            parent = self.get_parent()
-            while parent is not None:
-                entity_id = parent.get_id()
-                l.append(entity_id)
-                parent = parent.get_parent()
-            l.reverse()
-            self.full_id = tuple(l)
+            self._reset_full_id()
         return self.full_id
 
     def transform(self, rot, tran):
-        """
-        Apply rotation and translation to the atomic coordinates.
+        """Apply rotation and translation to the atomic coordinates.
 
-        Example:
-                >>> rotation=rotmat(pi, Vector(1, 0, 0))
-                >>> translation=array((0, 0, 1), 'f')
-                >>> entity.transform(rotation, translation)
+        :param rot: A right multiplying rotation matrix
+        :type rot: 3x3 Numeric array
 
-        @param rot: A right multiplying rotation matrix
-        @type rot: 3x3 Numeric array
+        :param tran: the translation vector
+        :type tran: size 3 Numeric array
 
-        @param tran: the translation vector
-        @type tran: size 3 Numeric array
+        Examples
+        --------
+        >>> rotation = rotmat(pi, Vector(1, 0, 0))
+        >>> translation = array((0, 0, 1), 'f')
+        >>> entity.transform(rotation, translation)
+
         """
         for o in self.get_list():
             o.transform(rot, tran)
@@ -227,7 +303,8 @@ class Entity(object):
 
 
 class DisorderedEntityWrapper(object):
-    """
+    """Wrapper class to group equivalent Entities.
+
     This class is a simple wrapper class that groups a number of equivalent
     Entities and forwards all method calls to one of them (the currently selected
     object). DisorderedResidue and DisorderedAtom are subclasses of this class.
@@ -236,7 +313,9 @@ class DisorderedEntityWrapper(object):
     where each Atom object represents a specific position of a disordered
     atom in the structure.
     """
+
     def __init__(self, id):
+        """Initialize the class."""
         self.id = id
         self.child_dict = {}
         self.selected_child = None
@@ -266,8 +345,8 @@ class DisorderedEntityWrapper(object):
         self.child_dict[id] = child
 
     def __contains__(self, id):
-        """True if the child has the given id."""
-        return (id in self.selected_child)
+        """Check if the child has the given id."""
+        return id in self.selected_child
 
     def __iter__(self):
         """Return the number of children."""
@@ -281,6 +360,20 @@ class DisorderedEntityWrapper(object):
         """Subtraction with another object."""
         return self.selected_child - other
 
+    # Sorting
+    # Directly compare the selected child
+    def __gt__(self, other):
+        return self.selected_child > other
+
+    def __ge__(self, other):
+        return self.selected_child >= other
+
+    def __lt__(self, other):
+        return self.selected_child < other
+
+    def __le__(self, other):
+        return self.selected_child <= other
+
     # Public methods
 
     def get_id(self):
@@ -288,8 +381,8 @@ class DisorderedEntityWrapper(object):
         return self.id
 
     def disordered_has_id(self, id):
-        """True if there is an object present associated with this id."""
-        return (id in self.child_dict)
+        """Check if there is an object present associated with this id."""
+        return id in self.child_dict
 
     def detach_parent(self):
         """Detach the parent."""
@@ -315,7 +408,10 @@ class DisorderedEntityWrapper(object):
         self.selected_child = self.child_dict[id]
 
     def disordered_add(self, child):
-        """This is implemented by DisorderedAtom and DisorderedResidue."""
+        """Add disordered entry.
+
+        This is implemented by DisorderedAtom and DisorderedResidue.
+        """
         raise NotImplementedError
 
     def is_disordered(self):

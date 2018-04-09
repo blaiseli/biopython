@@ -3,13 +3,13 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
-"""Testing Bio.TogoWS online code.
-"""
+"""Testing Bio.TogoWS online code."""
 
 from __future__ import print_function
 
 import unittest
 from Bio._py3k import StringIO
+from Bio._py3k import HTTPError
 
 import requires_internet
 requires_internet.check()
@@ -77,12 +77,6 @@ class TogoFields(unittest.TestCase):
                                            'organism', 'common_name',
                                            'taxonomy', 'comment', 'seq']),
                                            fields)
-
-#    def test_embl(self):
-#        """Check supported fields for embl database"""
-#        fields = set(TogoWS._get_entry_fields("embl"))
-#        self.assertTrue(fields.issuperset(["definition", "entry_id", "seq"]),
-#                        fields)
 
     def test_uniprot(self):
         """Check supported fields for uniprot database"""
@@ -300,38 +294,6 @@ class TogoEntry(unittest.TestCase):
         handle.close()
         self.assertTrue(data.startswith("##gff-version 3\nX52960\tGenbank\t"), data)
 
-#    def test_embl_AM905444_gff3(self):
-#        """Bio.TogoWS.entry("embl", "AM905444", format="gff")"""
-#        handle = TogoWS.entry("embl", "AM905444", format="gff")
-#        data = handle.read()
-#        handle.close()
-# self.assertTrue(data.startswith("##gff-version 3\nAM905444\tembl\t"), data)
-
-#    def test_embl_AM905444_seq(self):
-#        """Bio.TogoWS.entry("embl", "AM905444", field="seq")"""
-#        handle = TogoWS.entry("embl", "AM905444", field="seq")
-# data = handle.read().strip()  # ignore any trailing \n
-#        handle.close()
-#        self.assertEqual(seguid(data), "G0HtLpwF7i4FXUaUjDUPTjok79c")
-
-#    def test_embl_AM905444_definition(self):
-#        """Bio.TogoWS.entry("embl", "AM905444", field="definition")"""
-#        handle = TogoWS.entry("embl", "AM905444", field="definition")
-# data = handle.read().strip()  # ignore any trailing \n
-#        handle.close()
-#        self.assertEqual(data, "Herbaspirillum seropedicae locus tag HS193.0074 for porin")
-
-#    def test_embl_AM905444(self):
-#        """Bio.TogoWS.entry("embl", "AM905444")"""
-#        handle = TogoWS.entry("embl", "AM905444")
-#        record = SeqIO.read(handle, "embl")
-#        handle.close()
-#        self.assertIn("AM905444", record.id)
-#        self.assertIn("AM905444", record.name)
-#        self.assertIn("porin", record.description)
-#        self.assertEqual(len(record), 1164)
-#        self.assertEqual(seguid(record.seq), "G0HtLpwF7i4FXUaUjDUPTjok79c")
-
     def test_ddbj_fasta(self):
         """Bio.TogoWS.entry("ddbj", "X52960", "fasta")"""
         handle = TogoWS.entry("ddbj", "X52960", "fasta")
@@ -420,26 +382,23 @@ class TogoSearch(unittest.TestCase):
         self.assertRaises(ValueError, TogoWS.search,
                           "pubmed", "lung+cancer", offset=1, limit="lots")
 
-# TogoWS search for PubMed currently unavailable
-#    def test_pubmed_search_togows(self):
-#        """Bio.TogoWS.search_iter("pubmed", "TogoWS") etc"""
-#        self.check("pubmed", "TogoWS", ["20472643"])
+    def test_pubmed_search_togows(self):
+        """Bio.TogoWS.search_iter("pubmed", "TogoWS") etc"""
+        self.check("pubmed", "TogoWS", ["20472643"])
 
-# TogoWS search for PubMed currently unavailable
-#    def test_pubmed_search_bioruby(self):
-#        """Bio.TogoWS.search_iter("pubmed", "BioRuby") etc"""
-#        self.check("pubmed", "BioRuby", ["22994508", "22399473",
-#                                         "20739307", "20015970", "14693808"])
+    def test_pubmed_search_bioruby(self):
+        """Bio.TogoWS.search_iter("pubmed", "BioRuby") etc"""
+        self.check("pubmed", "BioRuby", ["22994508", "22399473",
+                                         "20739307", "20015970", "14693808"])
 
-# TogoWS search for PubMed currently unavailable
-#    def test_pubmed_search_porin(self):
-#        """Bio.TogoWS.search_iter("pubmed", "human porin") etc
-#
-#        Count was 357 at time of writing, this was choosen to
-#        be larger than the default chunk size for iteration,
-#        but still not too big to download the full list.
-#        """
-#        self.check("pubmed", "human porin", ["21189321", "21835183"])
+    def test_pubmed_search_porin(self):
+        """Bio.TogoWS.search_iter("pubmed", "human porin") etc
+
+        Count was 357 at time of writing, this was chosen to
+        be larger than the default chunk size for iteration,
+        but still not too big to download the full list.
+        """
+        self.check("pubmed", "human porin", ["21189321", "21835183"])
 
 # TogoWS search for PDBj currently unavailable
 #    def test_pdb_search_porin(self):
@@ -449,29 +408,23 @@ class TogoSearch(unittest.TestCase):
 #        """
 #        self.check("pdb", "porin", ["2j1n", "2vqg", "3m8b", "2k0l"])
 
-# TogoWS currently does not support the EMBL database
-#    def test_embl_search_porin(self):
-#        """Bio.TogoWS.search_iter("embl", "human pore", limit=200) etc
-#
-#        Count was about 297 at time of writing.
-#        """
-#        self.check("embl", "human pore", limit=200)
+    def test_uniprot_search_lung_cancer(self):
+        """Bio.TogoWS.search_iter("uniprot", "terminal+lung+cancer", limit=150) etc
 
-# TogoWS search for UniProt currently unavailable
-#    def test_uniprot_search_lung_cancer(self):
-#        """Bio.TogoWS.search_iter("uniprot", "terminal+lung+cancer", limit=150) etc
-#
-#        Search count was 211 at time of writing, a bit large to
-#        download all the results in a unit test. Want to use a limit
-#        larger than the batch size (100) to ensure at least two
-#        batches.
-#        """
-#        self.check("uniprot", "terminal+lung+cancer", limit=150)
+        Search count was 211 at time of writing, a bit large to
+        download all the results in a unit test. Want to use a limit
+        larger than the batch size (100) to ensure at least two
+        batches.
+        """
+        self.check("uniprot", "terminal+lung+cancer", limit=150)
 
     def check(self, database, search_term, expected_matches=(), limit=None):
         if expected_matches and limit:
             raise ValueError("Bad test - TogoWS makes no promises about order")
-        search_count = TogoWS.search_count(database, search_term)
+        try:
+            search_count = TogoWS.search_count(database, search_term)
+        except HTTPError as err:
+            raise ValueError("%s from %s" % (err, err.url))
         if expected_matches and search_count < len(expected_matches):
             raise ValueError("Only %i matches, expected at least %i"
                              % (search_count, len(expected_matches)))
@@ -518,6 +471,7 @@ class TogoConvert(unittest.TestCase):
 #        with open(filename) as handle:
 #            new = SeqIO.read(TogoWS.convert(handle, "genbank", "embl"), "embl")
 #        self.assertEqual(str(old.seq), str(new.seq))
+
 
 if __name__ == "__main__":
     runner = unittest.TextTestRunner(verbosity=2)

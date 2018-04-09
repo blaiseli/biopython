@@ -36,6 +36,7 @@ class Hmmer2TextParser(object):
     """Iterator for the HMMER 2.0 text output."""
 
     def __init__(self, handle):
+        """Initialize the class."""
         self.handle = handle
         self.buf = []
         self._meta = self.parse_preamble()
@@ -48,7 +49,7 @@ class Hmmer2TextParser(object):
             yield qresult
 
     def read_next(self, rstrip=True):
-        """Return the next non-empty line, trailing whitespace removed"""
+        """Return the next non-empty line, trailing whitespace removed."""
         if len(self.buf) > 0:
             return self.buf.pop()
         self.line = self.handle.readline()
@@ -60,11 +61,11 @@ class Hmmer2TextParser(object):
         return self.line
 
     def push_back(self, line):
-        """Un-read a line that should not be parsed yet"""
+        """Un-read a line that should not be parsed yet."""
         self.buf.append(line)
 
     def parse_key_value(self):
-        """Parse key-value pair separated by colon (:)"""
+        """Parse key-value pair separated by colon."""
         key, value = self.line.split(':', 1)
         return key.strip(), value.strip()
 
@@ -107,7 +108,7 @@ class Hmmer2TextParser(object):
         """Parse a HMMER2 query block."""
         while self.read_next():
             if not self.line.startswith('Query'):
-                raise StopIteration()
+                return
             _, id_ = self.parse_key_value()
             self.qresult = QueryResult(id=id_)
 
@@ -258,16 +259,12 @@ class Hmmer2TextParser(object):
                         break
 
                 # skip the *-> start marker if it exists
-                if self.line[19] == '*':
+                if self.line[19:22] == '*->':
                     seq = self.line[22:]
                     pad = 3
                 else:
                     seq = self.line[19:]
                     pad = 0
-
-                # get rid of the end marker
-                if seq.endswith('<-*'):
-                    seq = seq[:-3]
 
                 hmmseq += seq
                 line_len = len(seq)
@@ -281,9 +278,21 @@ class Hmmer2TextParser(object):
 
                 if not self.read_next():
                     break
-                otherseq += self.line[19:].split()[0].strip()
+
+                # if we have a line break in the end marker, we get a
+                # whitespace-only otherseq line, making split()[0] return
+                # the end coordinate. That'll be a -, which is a valid character
+                # in the sequence, meaning we can't just strip it.
+                parts = self.line[19:].split()
+                if len(parts) == 2:
+                    otherseq += self.line[19:].split()[0].strip()
 
             self.push_back(self.line)
+
+            # get rid of the end marker
+            if hmmseq.endswith('<-*'):
+                hmmseq = hmmseq[:-3]
+                consensus = consensus[:-3]
 
             # add similarity sequence to annotation
             frag.aln_annotation['similarity'] = consensus
@@ -301,7 +310,6 @@ class Hmmer2TextParser(object):
 
 
 class Hmmer2TextIndexer(_BaseHmmerTextIndexer):
-
     """Indexer for hmmer2-text format."""
 
     _parser = Hmmer2TextParser
@@ -341,6 +349,7 @@ class Hmmer2TextIndexer(_BaseHmmerTextIndexer):
                 break
 
             line = read_forward(handle)
+
 
 # if not used as a module, run the doctest
 if __name__ == "__main__":

@@ -61,7 +61,7 @@ from Bio.SeqIO import QualityIO
 
 
 def PhdIterator(handle):
-    """Returns SeqRecord objects from a PHD file.
+    """Return SeqRecord objects from a PHD file.
 
     This uses the Bio.Sequencing.Phd module to do the hard work.
     """
@@ -93,9 +93,10 @@ def PhdIterator(handle):
 
 
 class PhdWriter(SequentialSequenceWriter):
-    """Class to write Phd format files"""
+    """Class to write Phd format files."""
 
     def __init__(self, handle):
+        """Initialize the class."""
         SequentialSequenceWriter.__init__(self, handle)
 
     def write_record(self, record):

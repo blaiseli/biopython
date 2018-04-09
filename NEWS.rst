@@ -8,9 +8,211 @@ http://news.open-bio.org/news/category/obf-projects/biopython/
 
 The latest news is at the top of this file.
 
-  
-(In progress, not yet released) Biopython 1.69
+(In progress, not yet released) Biopython 1.71
 ==============================================
+
+Internal changes to Bio.SeqIO have sped up the SeqRecord .format method and
+SeqIO.write (especially when used in a for loop).
+
+
+3 April 2018: Biopython 1.71
+============================
+
+This release of Biopython supports Python 2.7, 3.4, 3.5 and 3.6.
+It has also been tested on PyPy2.7 v5.10.0 and PyPy3.5 v5.10.1.
+
+Python 3 is the primary development platform for Biopython. We will drop
+support for Python 2.7 no later than 2020, in line with the end-of-life or
+sunset date for Python 2.7 itself.
+
+Encoding issues have been fixed in several parsers when reading data files
+with non-ASCII characters, like accented letters in people's names. This would
+raise ``UnicodeDecodeError: 'ascii' codec can't decode byte ...`` under some
+system locale settings.
+
+Bio.KEGG can now parse Gene files.
+
+The multiple-sequence-alignment object used by Bio.AlignIO etc now supports
+a per-column annotation dictionary, useful for richly annotated alignments
+in the Stockholm/PFAM format.
+
+The SeqRecord object now has a translate method, following the approach used
+for its existing reverse_complement method etc.
+
+The output of function ``format_alignment`` in ``Bio.pairwise2`` for displaying
+a pairwise sequence alignment as text now indicates gaps and mis-matches.
+
+Bio.SeqIO now supports reading and writing two-line-per-record FASTA files
+under the format name "fasta-2line", useful if you wish to work without
+line-wrapped sequences.
+
+Bio.PDB now contains a writer for the mmCIF file format, which has been the
+standard PDB archive format since 2014. This allows structural objects to be
+written out and facilitates conversion between the PDB and mmCIF file formats.
+
+Bio.Emboss.Applications has been updated to fix a wrong parameter in fuzznuc
+wrapper and include a new wrapper for fuzzpro.
+
+The restriction enzyme list in Bio.Restriction has been updated to the
+November 2017 release of REBASE.
+
+New codon tables 27-31 from NCBI (NCBI genetic code table version 4.2) 
+were added to Bio.Data.CodonTable. Note that tables 27, 28 and 31 contain
+no dedicated stop codons; the stop codons in these codes have a context
+dependent encoding as either STOP or as amino acid. 
+
+In this release more of our code is now explicitly available under either our
+original "Biopython License Agreement", or the very similar but more commonly
+used "3-Clause BSD License".  See the ``LICENSE.rst`` file for more details.
+
+IO functions such as ``SeqIO.parse`` now accept any objects which can be passed
+to the builtin ``open`` function. Specifically, this allows using
+``pathlib.Path`` objects under Python 3.6 and newer, as per `PEP 519
+<https://www.python.org/dev/peps/pep-0519/>`_.
+
+Bio.SearchIO can now parse InterProScan XML files.
+
+For Python 3 compatibility, comparision operators for the entities within a
+Bio.PDB Structure object were implemented. These allow the comparison of
+models, chains, residues, and atoms with the common operators  (==, !=, >, ...)
+Comparisons are based on IDs and take the parents of the entity up to the
+model level into account. For consistent behaviour of all entities the operators
+for atoms were modified to also consider the parent IDs. NOTE: this represents a
+change in behaviour in respect to v1.70 for Atom comparisons. In order to mimic
+the behaviour of previous versions, comparison will have to be done for Atom IDs
+and alternative locations specifically.
+
+Additionally, a number of small bugs and typos have been fixed with further
+additions to the test suite, and there has been further work to follow the
+Python PEP8, PEP257 and best practice standard coding style.
+
+Many thanks to the Biopython developers and community for making this release
+possible, especially the following contributors:
+
+- Adhemar Zerlotini
+- Ariel Aptekmann
+- Chris Rands
+- Christian Brueffer
+- Erik Cederstrand (first contribution)
+- Fei Qi (first contribution)
+- Francesco Gastaldello
+- James Jeffryes (first contribution)
+- Jerven Bolleman (first contribution)
+- Joe Greener (first contribution)
+- Joerg Schaarschmidt (first contribution)
+- João Rodrigues
+- Jeroen Van Goey
+- Jun Aruga (first contribution)
+- Kai Blin
+- Kozo Nishida
+- Lewis A. Marshall (first contribution)
+- Markus Piotrowski
+- Michiel de Hoon
+- Nicolas Fontrodona (first contribution)
+- Peter Cock
+- Philip Bergstrom (first contribution)
+- rht (first contribution)
+- Saket Choudhary
+- Shuichiro MAKIGAKI (first contribution)
+- Shyam Saladi (first contribution)
+- Siong Kong
+- Spencer Bliven
+- Stefans Mezulis
+- Steve Bond
+- Yasar L. Ahmed (first contribution)
+- Zachary Sailer (first contribution)
+- Zaid Ur-Rehman (first contribution)
+
+
+10 July 2017: Biopython 1.70
+============================
+
+This release of Biopython supports Python 2.7, 3.4, 3.5 and 3.6 (we have now
+dropped support for Python 3.3). It has also been tested on PyPy v5.7,
+PyPy3.5 v5.8 beta, and Jython 2.7 (although support for Jython is deprecated).
+
+Biopython now has a new logo, contributed by Patrick Kunzmann. Drawing on our
+original logo and the current Python logo, this shows a yellow and blue snake
+forming a double helix.
+
+For installation Biopython now assumes ``setuptools`` is present, and takes
+advantage of this to declare we require NumPy at install time (except under
+Jython). This should help ensure ``pip install biopython`` works smoothly.
+
+Bio.AlignIO now supports Mauve's eXtended Multi-FastA (XMFA) file format
+under the format name "mauve" (contributed by Eric Rasche).
+
+Bio.ExPASy was updated to fix fetching PROSITE and PRODOC records, and return
+text-mode handles for use under Python 3.
+
+Two new arguments for reading and writing blast-xml files have been added
+to the Bio.SearchIO functions (read/parse and write, respectively). They
+are 'use_raw_hit_ids' and 'use_raw_query_ids'. Check out the relevant
+SearchIO.BlastIO documentation for a complete description of what these
+arguments do.
+
+Bio.motifs was updated to support changes in MEME v4.11.4 output.
+
+The Bio.Seq sequence objects now have a ``.count_overlap()`` method to
+supplement the Python string like non-overlap based ``.count()`` method.
+
+The Bio.SeqFeature location objects can now be compared for equality.
+
+Bio.Phylo.draw_graphviz is now deprecated. We recommend using Bio.Phylo.draw
+instead, or another library or program if more advanced plotting functionality
+is needed.
+
+In Bio.Phylo.TreeConstruction, the DistanceMatrix class (previously
+_DistanceMatrix) has a new method 'format_phylip' to write Phylip-compatible
+distance matrix files (contributed by Jordan Willis).
+
+Additionally, a number of small bugs have been fixed with further additions
+to the test suite, and there has been further work to follow the Python PEP8,
+PEP257 and best practice standard coding style.
+
+Many thanks to the Biopython developers and community for making this release
+possible, especially the following contributors:
+
+- Aaron Kitzmiller (first contribution)
+- Adil Iqbal (first contribution)
+- Allis Tauri
+- Andrew Guy
+- Ariel Aptekmann (first contribution)
+- Ben Fulton
+- Bertrand Caron (first contribution)
+- Chris Rands
+- Connor T. Skennerton
+- Eric Rasche
+- Eric Talevich
+- Francesco Gastaldello
+- François Coste (first contribution)
+- Frederic Sapet (first contribution)
+- Jimmy O'Donnell (first contribution)
+- Jared Andrews (first contribution)
+- John Kern (first contribution)
+- Jordan Willis (first contribution)
+- João Rodrigues
+- Kai Blin
+- Markus Piotrowski
+- Mateusz Korycinski (first contribution)
+- Maximilian Greil
+- Michiel de Hoon
+- morrme (first contribution)
+- Noam Kremen (first contribution)
+- Patrick Kunzmann (first contribution)
+- Peter Cock
+- Rasmus Fonseca (first contribution)
+- Rodrigo Dorantes-Gilardi (first contribution)
+- Sacha Laurent (first contribution)
+- Sourav Singh
+- Ted Cybulski (first contribution)
+- Tiago Antao
+- Wibowo 'Bow' Arindrarto
+- Zheng Ruan
+
+
+6 April 2017: Biopython 1.69
+============================
 
 This release of Biopython supports Python 2.7, 3.3, 3.4, 3.5 and 3.6 (we have
 now dropped support for Python 2.6). It has also been tested on PyPy v5.7,
@@ -20,8 +222,11 @@ We have started to dual-license Biopython under both our original liberal
 "Biopython License Agreement", and the very similar but more commonly used
 "3-Clause BSD License". In this release a small number of the Python files
 are explicitly available under either license, but most of the code remains
-under the "Biopython License Agreement" only. See the LICENSE file for more
-details.
+under the "Biopython License Agreement" only. See the ``LICENSE.rst`` file
+for more details.
+
+We now expect and take advantage of NumPy under PyPy, and compile most of the
+Biopython C code modules as well.
 
 Bio.AlignIO now supports the UCSC Multiple Alignment Format (MAF) under the
 format name "maf", using new module Bio.AlignIO.MafIO which also offers
@@ -78,7 +283,6 @@ PEP257 and best practice standard coding style.
 Many thanks to the Biopython developers and community for making this release
 possible, especially the following contributors:
 
-
 - Aaron Rosenfeld
 - Adam Kurkiewicz (first contribution)
 - Adam Novak (first contribution)
@@ -97,8 +301,8 @@ possible, especially the following contributors:
 - Carlos Ríos
 - Chris Warth
 - Emmanuel Noutahi
-- FGastaldello (first contribution)
 - Foen Peng (first contribution)
+- Francesco Gastaldello (first contribution)
 - Francisco Pina-Martins (first contribution)
 - Hector Martinez (first contribution)
 - Jacek Śmietański
@@ -120,6 +324,7 @@ possible, especially the following contributors:
 - Richard Neher (first contribution)
 - Sebastian Bassi
 - Sourav Singh (first contribution)
+- Spencer Bliven (first contribution)
 - Stefans Mezulis
 - Steve Bond
 - Steve Marshall (first contribution)
@@ -452,12 +657,12 @@ Bio.PopGen.SimCoal now also supports fastsimcoal.
 SearchIO hmmer3-text, hmmer3-tab, and hmmer3-domtab now support output from
 hmmer3.1b1.
 
-The 'accession' of QueryResult and Hit objects created when using the
-'hmmer3-tab' format are now properly named as 'accession' (previously they
-were acc, deviating from the documentation).
+The ``accession`` of QueryResult and Hit objects created when using the
+'hmmer3-tab' format are now properly named as ``accession`` (previously they
+were ``acc``, deviating from the documentation).
 
-The `homology` key in the `aln_annotation` attribute of an HSP object in
-Bio.SearchIO has been renamed to `similarity`.
+The ``homology` key in the ``aln_annotation`` attribute of an HSP object in
+Bio.SearchIO has been renamed to ``similarity``.
 
 The Bio.SeqUtils masses and molecular_weight function have been updated.
 

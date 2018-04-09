@@ -50,7 +50,8 @@ test_records = [
                 description="an%sevil\rdescription right\nhere" % os.linesep),
       SeqRecord(Seq("TTTCCTCGGAGGCCAATCTGGATCAAGACCAT", Alphabet.generic_dna), id="Z")],
      "3 DNA seq alignment with CR/LF in name/descr",
-     [(["genbank"], ValueError, r"Invalid whitespace in 'The\nMystery\rSequece:\r\nX' for LOCUS line")]),
+     [(["genbank"], ValueError, r"Invalid whitespace in 'The\nMystery\rSequece:\r\nX' for LOCUS line"),
+      (["mauve"], ValueError, "Sequences have different lengths, or repeated identifier")]),
     ([SeqRecord(Seq("CHSMAIKLSSEHNIPSGIANAL", Alphabet.generic_protein), id="Alpha"),
       SeqRecord(Seq("VHGMAHPLGAFYNTPHGVANAI", Alphabet.generic_protein), id="Beta"),
       SeqRecord(Seq("VHGMAHPLGAFYNTPHGVANAI", Alphabet.generic_protein), id="Beta"),
@@ -74,6 +75,7 @@ test_records[4][0][2].annotations["weight"] = 2.5
 
 class WriterTests(unittest.TestCase):
     """Cunning unit test where methods are added at run time."""
+
     def check(self, records, format):
         """General test function with with a little format specific information.
 
@@ -83,7 +85,7 @@ class WriterTests(unittest.TestCase):
         lengths = len(set(len(r) for r in records))
         if not records and format in ["stockholm", "phylip", "phylip-relaxed",
                                       "phylip-sequential", "nexus", "clustal",
-                                      "sff"]:
+                                      "sff", "mauve"]:
             self.check_write_fails(records, format, ValueError,
                                    "Must have at least one sequence")
         elif lengths > 1 and format in AlignIO._FormatToWriter:

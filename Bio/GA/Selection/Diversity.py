@@ -31,17 +31,17 @@ class DiversitySelection(AbstractSelection):
     If new individuals can not be selected, new individuals will be
     randomly generated and inserted into the population.
     """
+
     def __init__(self, internal_selector, genome_generator):
         """Initialize a diversity selector.
 
         Arguments:
+         - internal_selector - A selection object that will be used to select
+           individuals based on fitness, perform crossover, mutation and repair.
+         - genome_generator - A function that, when called, will return a
+           genome to be used for a new organism. The genome returned must
+           be a MutableSeq() object.
 
-        o internal_selector - A selection object that will be used to select
-        individuals based on fitness, perform crossover, mutation and repair.
-
-        o genome_generator - A function that, when called, will return a
-        genome to be used for a new organism. The genome returned must
-        be a MutableSeq() object.
         """
         self._internal_selector = internal_selector
         self._genome_generator = genome_generator
@@ -50,7 +50,7 @@ class DiversitySelection(AbstractSelection):
         self.random_tries = 10
 
     def _get_new_organism(self, new_pop, old_pop):
-        """Get a new organism from old_pop that isn't in new_pop.
+        """Get a new organism from old_pop that isn't in new_pop (PRIVATE).
 
         This attempts to select an organism from old_pop that isn't in
         new_pop. If we can't do this in the number of tries specified
@@ -78,8 +78,7 @@ class DiversitySelection(AbstractSelection):
         return new_org
 
     def select(self, population):
-        """Perform selection on the current population, encouraging diversity.
-        """
+        """Perform selection on the current population, encouraging diversity."""
         new_population = []
 
         while len(new_population) < len(population):

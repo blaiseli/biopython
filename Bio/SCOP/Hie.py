@@ -3,29 +3,35 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
+"""Handle the SCOP HIErarchy files.
 
-"""Handle the SCOP HIErarchy files, which describe the SCOP hierarchy in
-terms of SCOP unique identifiers (sunid).
+The SCOP Hierarchy files describe the SCOP hierarchy in terms of SCOP
+unique identifiers (sunid).
 
-The file format is described in the scop
-"release notes.":http://scop.berkeley.edu/release-notes-1.55.html
-The latest HIE file can be found
-"elsewhere at SCOP.":http://scop.mrc-lmb.cam.ac.uk/scop/parse/
+The file format is described in the SCOP `release notes
+<http://scop.berkeley.edu/release-notes-1.55.html>`_.
 
-"Release 1.55":http://scop.berkeley.edu/parse/dir.hie.scop.txt_1.55 (July 2001)
+The latest HIE file can be found `elsewhere at SCOP
+<http://scop.mrc-lmb.cam.ac.uk/scop/parse/>`_.
+
+`Release 1.55 <http://scop.berkeley.edu/parse/dir.hie.scop.txt_1.55>`_
+(July 2001).
 """
+# TODO - Update the above URLs
 
 
 class Record(object):
     """Holds information for one node in the SCOP hierarchy.
 
     Attributes:
-
      - sunid - SCOP unique identifiers of this node
      - parent - Parents sunid
      - children - Sequence of childrens sunids
+
     """
+
     def __init__(self, line=None):
+        """Initialize the class."""
         self.sunid = ''
         self.parent = ''
         self.children = []
@@ -33,7 +39,7 @@ class Record(object):
             self._process(line)
 
     def _process(self, line):
-        """Parses HIE records.
+        """Parse HIE records.
 
         Records consist of 3 tab deliminated fields; node's sunid,
         parent's sunid, and a list of children's sunids.
@@ -87,11 +93,11 @@ class Record(object):
 
 
 def parse(handle):
-    """Iterates over a HIE file as Hie records for each line.
+    """Iterate over a HIE file as Hie records for each line.
 
     Arguments:
-
      - handle - file-like object.
+
     """
     for line in handle:
         if line.startswith('#'):

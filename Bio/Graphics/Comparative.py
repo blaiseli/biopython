@@ -39,8 +39,11 @@ class ComparativeScatterPlot(object):
     If everything is just one set of points, display_info can look like::
 
         display_info = [[(1, 2), (3, 4), (5, 6)]]
+
     """
+
     def __init__(self, output_format='pdf'):
+        """Initialize."""
         # customizable attributes
         self.number_of_columns = 1
         self.page_size = letter
@@ -62,10 +65,10 @@ class ComparativeScatterPlot(object):
         """Write the comparative plot to a file.
 
         Arguments:
-
          - output_file - The name of the file to output the information to,
            or a handle to write to.
          - title - A title to display on the graphic.
+
         """
         width, height = self.page_size
         cur_drawing = Drawing(width, height)
@@ -81,8 +84,7 @@ class ComparativeScatterPlot(object):
         return _write(cur_drawing, output_file, self.output_format)
 
     def _draw_title(self, cur_drawing, title, width, height):
-        """Add a title to the page we are outputting.
-        """
+        """Add a title to the page we are outputting (PRIVATE)."""
         title_string = String(width / 2, height - inch, title)
         title_string.fontName = 'Helvetica-Bold'
         title_string.fontSize = self.title_size
@@ -120,7 +122,7 @@ class ComparativeScatterPlot(object):
         cur_drawing.add(scatter_plot)
 
     def _set_colors_and_shapes(self, scatter_plot, display_info):
-        """Set the colors and shapes of the points displayed.
+        """Set the colors and shapes of the points displayed (PRIVATE).
 
         By default this just sets all of the points according to the order
         of colors and shapes defined in self.color_choices and
@@ -147,7 +149,7 @@ class ComparativeScatterPlot(object):
                     self.shape_choices[-1]
 
     def _find_min_max(self, info):
-        """Find min and max for x and y coordinates in the given data."""
+        """Find min and max for x and y coordinates in the given data (PRIVATE)."""
         x_min = info[0][0][0]
         x_max = info[0][0][0]
         y_min = info[0][0][1]

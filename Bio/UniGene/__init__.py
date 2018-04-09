@@ -76,37 +76,39 @@ Here is an overview of the flat file format that this parser deals with:
                          Possible values are mRNA, EST and HTC.
            TRACE=        The Trace ID of the EST sequence, as provided by
                          NCBI Trace Archive
+
 """
 
 
 class SequenceLine(object):
-    """Store the information for one SEQUENCE line from a Unigene file
+    """Store the information for one SEQUENCE line from a Unigene file.
 
     Initialize with the text part of the SEQUENCE line, or nothing.
 
     Attributes and descriptions (access as LOWER CASE):
+     - ACC=         GenBank/EMBL/DDBJ accession number of sequence
+     - NID=         Unique nucleotide sequence identifier (gi)
+     - PID=         Unique protein sequence identifier (used for non-ESTs)
+     - CLONE=       Clone identifier (used for ESTs only)
+     - END=         End (5'/3') of clone insert read (used for ESTs only)
+     - LID=         Library ID; see Hs.lib.info for library name and tissue
+     - MGC=         5' CDS-completeness indicator; if present,
+       the clone associated with this sequence
+       is believed CDS-complete. A value greater than 511
+       is the gi of the CDS-complete mRNA matched by the EST,
+       otherwise the value is an indicator of the reliability
+       of the test indicating CDS completeness;
+       higher values indicate more reliable CDS-completeness
+       predictions.
+     - SEQTYPE=     Description of the nucleotide sequence. Possible values
+       are mRNA, EST and HTC.
+     - TRACE=       The Trace ID of the EST sequence, as provided by NCBI
+       Trace Archive
 
-        - ACC=         GenBank/EMBL/DDBJ accession number of sequence
-        - NID=         Unique nucleotide sequence identifier (gi)
-        - PID=         Unique protein sequence identifier (used for non-ESTs)
-        - CLONE=       Clone identifier (used for ESTs only)
-        - END=         End (5'/3') of clone insert read (used for ESTs only)
-        - LID=         Library ID; see Hs.lib.info for library name and tissue
-        - MGC=         5' CDS-completeness indicator; if present,
-          the clone associated with this sequence
-          is believed CDS-complete. A value greater than 511
-          is the gi of the CDS-complete mRNA matched by the EST,
-          otherwise the value is an indicator of the reliability
-          of the test indicating CDS completeness;
-          higher values indicate more reliable CDS-completeness
-          predictions.
-        - SEQTYPE=     Description of the nucleotide sequence. Possible values
-          are mRNA, EST and HTC.
-        - TRACE=       The Trace ID of the EST sequence, as provided by NCBI
-          Trace Archive
     """
 
     def __init__(self, text=None):
+        """Initialize the class."""
         self.acc = ''
         self.nid = ''
         self.lid = ''
@@ -137,7 +139,7 @@ class SequenceLine(object):
 
 
 class ProtsimLine(object):
-    """Store the information for one PROTSIM line from a Unigene file
+    """Store the information for one PROTSIM line from a Unigene file.
 
     Initialize with the text part of the PROTSIM line, or nothing.
 
@@ -150,6 +152,7 @@ class ProtsimLine(object):
     """
 
     def __init__(self, text=None):
+        """Initialize the class."""
         self.org = ''
         self.protgi = ''
         self.protid = ''
@@ -171,7 +174,7 @@ class ProtsimLine(object):
 
 
 class STSLine(object):
-    """Store the information for one STS line from a Unigene file
+    """Store the information for one STS line from a Unigene file.
 
     Initialize with the text part of the STS line, or nothing.
 
@@ -182,6 +185,7 @@ class STSLine(object):
     """
 
     def __init__(self, text=None):
+        """Initialize the class."""
         self.acc = ''
         self.unists = ''
         if text is not None:
@@ -200,7 +204,7 @@ class STSLine(object):
 
 
 class Record(object):
-    """Store a Unigene record
+    """Store a Unigene record.
 
     Here is what is stored::
 
@@ -224,9 +228,11 @@ class Record(object):
         self.sts          = []  # STS entries, array of STS entries
                                 # Type STSLine
         self.txmap        = []  # TXMAP entries, array of TXMap entries
+
     """
 
     def __init__(self):
+        """Initialize the class."""
         self.ID = ''  # ID line
         self.species = ''  # Hs, Bt, etc.
         self.title = ''  # TITLE line

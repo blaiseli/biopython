@@ -3,8 +3,9 @@
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
 
-"""A parser for the NCBI blastpgp version 2.2.5 output format. Currently only supports
-the '-m 9' option, (table w/ annotations).
+"""A parser for the NCBI blastpgp version 2.2.5 output format.
+
+Currently only supports the '-m 9' option, (table w/ annotations).
 Returns a BlastTableRec instance
 """
 
@@ -13,6 +14,7 @@ import sys
 
 class BlastTableEntry(object):
     def __init__(self, in_rec):
+        """Initialize the class."""
         bt_fields = in_rec.split()
         self.qid = bt_fields[0].split('|')
         self.sid = bt_fields[1].split('|')
@@ -28,6 +30,7 @@ class BlastTableEntry(object):
 
 class BlastTableRec(object):
     def __init__(self):
+        """Initialize the class."""
         self.program = None
         self.version = None
         self.date = None
@@ -39,6 +42,7 @@ class BlastTableRec(object):
     def add_entry(self, entry):
         self.entries.append(entry)
 
+
 reader_keywords = {'BLASTP': 'version',
                    'Iteration': 'iteration',
                    'Query': 'query',
@@ -48,6 +52,7 @@ reader_keywords = {'BLASTP': 'version',
 
 class BlastTableReader(object):
     def __init__(self, handle):
+        """Initialize the class."""
         self.handle = handle
         inline = self.handle.readline()
         # zip forward to start of record

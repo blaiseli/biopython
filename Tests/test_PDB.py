@@ -25,6 +25,7 @@ try:
     from numpy import dot  # Missing on old PyPy's micronumpy
     del dot
     from numpy.linalg import svd, det  # Missing in PyPy 2.0 numpypy
+    from numpy.random import random
 except ImportError:
     from Bio import MissingPythonDependencyError
     raise MissingPythonDependencyError(
@@ -33,14 +34,16 @@ except ImportError:
 from Bio import BiopythonWarning
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_protein
-from Bio.PDB import PDBParser, PPBuilder, CaPPBuilder, PDBIO, Select
+from Bio.PDB import PDBParser, PPBuilder, CaPPBuilder, PDBIO, Select, MMCIFParser, MMCIFIO
+from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 from Bio.PDB import HSExposureCA, HSExposureCB, ExposureCN
 from Bio.PDB.PDBExceptions import PDBConstructionException, PDBConstructionWarning
-from Bio.PDB import rotmat, Vector
+from Bio.PDB import rotmat, Vector, refmat, calc_angle, calc_dihedral, rotaxis, m2rotaxis
 from Bio.PDB import Residue, Atom
 from Bio.PDB import make_dssp_dict
 from Bio.PDB import DSSP
 from Bio.PDB.NACCESS import process_asa_data, process_rsa_data
+from Bio.PDB.ResidueDepth import _get_atom_radius
 
 
 # NB: the 'A_' prefix ensures this test case is run first
@@ -50,6 +53,7 @@ class A_ExceptionTest(unittest.TestCase):
     These tests must be executed because of the way Python's warnings module
     works -- a warning is only logged the first time it is encountered.
     """
+
     def test_1_warnings(self):
         """Check warnings: Parse a flawed PDB file in permissive mode."""
         with warnings.catch_warnings(record=True) as w:
@@ -75,7 +79,7 @@ class A_ExceptionTest(unittest.TestCase):
                     "Residue (' ', 16, ' ') redefined at line 135.",
                     "Residue (' ', 80, ' ') redefined at line 633.",
                     "Residue (' ', 81, ' ') redefined at line 646.",
-                    'Atom O defined twice in residue <Residue HOH het=W resseq=67 icode= > at line 822.'
+                    'Atom O defined twice in residue <Residue HOH het=W resseq=67 icode= > at line 902.'
                     ]):
                 self.assertIn(msg, str(wrn))
 
@@ -168,7 +172,7 @@ class ParseTest(unittest.TestCase):
         """Extract polypeptides using C-N."""
         ppbuild = PPBuilder()
         polypeptides = ppbuild.build_peptides(self.structure[1])
-        self.assertEqual(len(polypeptides), 1)
+        self.assertEqual(len(polypeptides), 2)
         pp = polypeptides[0]
         # Check the start and end positions
         self.assertEqual(pp[0].get_id()[1], 2)
@@ -185,7 +189,7 @@ class ParseTest(unittest.TestCase):
         """Extract polypeptides using CA-CA."""
         ppbuild = CaPPBuilder()
         polypeptides = ppbuild.build_peptides(self.structure[1])
-        self.assertEqual(len(polypeptides), 1)
+        self.assertEqual(len(polypeptides), 2)
         pp = polypeptides[0]
         # Check the start and end positions
         self.assertEqual(pp[0].get_id()[1], 2)
@@ -215,7 +219,7 @@ class ParseTest(unittest.TestCase):
         # --- Checking model 1 ---
         m1 = self.structure[1]
         # Model 1 contains 3 chains
-        self.assertEqual(len(m1), 3)
+        self.assertEqual(len(m1), 4)
         # Deconstruct this data structure to check each chain
         chain_data = [  # chain_id, chain_len, [(residue_id, residue_len), ...]
             ('A', 86, [((' ', 0, ' '), 1),
@@ -305,10 +309,23 @@ class ParseTest(unittest.TestCase):
                        ((' ', 85, ' '), 11),
                        ((' ', 86, ' '), 6),
                        ]),
-            ('B', 4, [(('H_NAG', 1, ' '), 14),
+            ('B', 11, [((' ', 44, ' '), 11),
+                       (('H_SEP', 45, ' '), 10),  # Phosphoserine
+                       ((' ', 46, ' '), 8),
+                       ((' ', 47, ' '), 10),
+                       ((' ', 48, ' '), 11),
+                       ((' ', 49, ' '), 6),
+                       ((' ', 50, ' '), 4),
+                       ((' ', 51, ' '), 5),
+                       ((' ', 51, 'A'), 5),
+                       ((' ', 52, ' '), 7),
+                       (('W', 0, ' '), 1),
+                       ]),
+            ('C', 5, [(('W', 0, ' '), 1),
+                      (('H_NAG', 1, ' '), 14),
                       (('H_NAG', 2, ' '), 14),
-                      (('H_NAG', 3, ' '), 14),
                       (('H_NAG', 4, ' '), 14),
+                      (('H_NAG', 3, ' '), 14),
                       ]),
             (' ', 76, [(('W', 1, ' '), 1),
                        (('W', 2, ' '), 1),
@@ -433,7 +450,7 @@ class ParseTest(unittest.TestCase):
         model = structure[1]
         self.assertEqual(model.id, 1)
         self.assertEqual(model.level, "M")
-        self.assertEqual(len(model), 3)
+        self.assertEqual(len(model), 4)
         chain = model["A"]
         self.assertEqual(chain.id, "A")
         self.assertEqual(chain.level, "C")
@@ -447,41 +464,42 @@ class ParseTest(unittest.TestCase):
                          "ASP ARG CYS CYS SER VAL HIS GLY TRP CYS GLY GLY "
                          "GLY ASN ASP TYR CYS SER GLY GLY ASN CYS GLN TYR "
                          "ARG CYS")
+
         self.assertEqual(" ".join(atom.name for atom in chain.get_atoms()),
-                         "C N CA C O CB CG CD NE CZ NH1 NH2 N CA C O CB SG "
-                         "N CA C O N CA C O CB OG N CA C O CB CG CD OE1 NE2 "
-                         "N CA C O N CA C O N CA C O N CA C O CB OG N CA C "
-                         "O CB OG1 CG2 N CA C O CB SG N CA C O CB CG CD N "
-                         "CA C O N CA C O CB CG CD1 CD2 N CA C O CB CG CD NE "
-                         "CZ NH1 NH2 N CA C O CB SG N CA C O CB SG N CA C O "
-                         "CB OG N CA C O CB CG1 CG2 CD1 N CA C O CB CG CD1 "
-                         "CD2 NE1 CE2 CE3 CZ2 CZ3 CH2 N CA C O N CA C O CB "
-                         "CG CD1 CD2 NE1 CE2 CE3 CZ2 CZ3 CH2 N CA C O CB SG "
-                         "N CA C O N CA C O CB CG OD1 OD2 N CA C O CB OG N "
-                         "CA C O CB CG CD OE1 OE2 N CA C O CB CG CD N CA C O "
-                         "CB CG CD1 CD2 CE1 CE2 CZ OH N CA C O CB SG N CA C "
-                         "O N CA C O CB CG CD NE CZ NH1 NH2 N CA C O CB OG1 "
-                         "CG2 N CA C O CB SG N CA C O CB CG CD OE1 OE2 N CA "
-                         "C O CB CG OD1 ND2 N CA C O CB CG CD CE NZ N CA C O "
-                         "CB SG N CA C O CB CG CD1 CD2 NE1 CE2 CE3 CZ2 CZ3 "
-                         "CH2 N CA C O CB OG N CA C O N CA C O CB CG CD OE1 "
-                         "OE2 N CA C O CB CG CD NE CZ NH1 NH2 N CA C O CB OG "
-                         "N CA C O CB CG OD1 OD2 N CA C O CB CG ND1 CD2 CE1 "
-                         "NE2 N CA C O CB CG CD NE CZ NH1 NH2 N CA C O CB SG "
-                         "N CA C O N CA C O CB N CA C O CB N CA C O CB CG1 "
-                         "CG2 N CA C O N CA C O CB CG OD1 ND2 N CA C O CB CG "
-                         "CD N CA C O CB CG CD N CA C O CB SG N CA C O N CA "
-                         "C O CB CG CD OE1 NE2 N CA C O CB CG OD1 OD2 N CA C "
-                         "O CB CG CD NE CZ NH1 NH2 N CA C O CB SG N CA C O "
-                         "CB SG N CA C O CB OG N CA C O CB CG1 CG2 N CA C O "
-                         "CB CG ND1 CD2 CE1 NE2 N CA C O N CA C O CB CG CD1 "
-                         "CD2 NE1 CE2 CE3 CZ2 CZ3 CH2 N CA C O CB SG N CA C "
-                         "O N CA C O N CA C O N CA C O CB CG OD1 ND2 N CA C O "
-                         "CB CG OD1 OD2 N CA C O CB CG CD1 CD2 CE1 CE2 CZ OH "
-                         "N CA C O CB SG N CA C O CB OG N CA C O N CA C O N "
+                         "C N CA C O CB CG CD NE CZ NH1 NH2 N CA C O CB SG N "
+                         "CA C O N CA C O CB OG N CA C O CB CG CD OE1 NE2 N CA "
+                         "C O N CA C O N CA C O N CA C O CB OG N CA C O CB OG1 "
+                         "CG2 N CA C O CB SG N CA C O CB CG CD N CA C O N CA C "
+                         "O CB CG CD1 CD2 N CA C O CB CG CD NE CZ NH1 NH2 N CA "
+                         "C O CB SG N CA C O CB SG N CA C O CB OG N CA C O CB "
+                         "CG1 CG2 CD1 N CA C O CB CG CD1 CD2 NE1 CE2 CE3 CZ2 "
+                         "CZ3 CH2 N CA C O N CA C O CB CG CD1 CD2 NE1 CE2 CE3 "
+                         "CZ2 CZ3 CH2 N CA C O CB SG N CA C O N CA C O CB CG "
+                         "OD1 OD2 N CA C O CB OG N CA C O CB CG CD OE1 OE2 N "
+                         "CA C O CB CG CD N CA C O CB CG CD1 CD2 CE1 CE2 CZ OH "
+                         "N CA C O CB SG N CA C O N CA C O CB CG CD NE CZ NH1 "
+                         "NH2 N CA C O CB OG1 CG2 N CA C O CB SG N CA C O CB "
+                         "CG CD OE1 OE2 N CA C O CB CG OD1 ND2 N CA C O CB CG "
+                         "CD CE NZ N CA C O CB SG N CA C O CB CG CD1 CD2 NE1 "
+                         "CE2 CE3 CZ2 CZ3 CH2 N CA C O CB OG N CA C O N CA C "
+                         "O CB CG CD OE1 OE2 N CA C O CB CG CD NE CZ NH1 NH2 "
+                         "N CA C O CB OG N CA C O CB CG OD1 OD2 N CA C O CB "
+                         "CG ND1 CD2 CE1 NE2 N CA C O CB CG CD NE CZ NH1 NH2 "
+                         "N CA C O CB SG N CA C O N CA C O CB N CA C O CB N "
+                         "CA C O CB CG1 CG2 N CA C O N CA C O CB CG OD1 ND2 "
+                         "N CA C O CB CG CD N CA C O CB CG CD N CA C O CB SG "
+                         "N CA C O N CA C O CB CG CD OE1 NE2 N CA C O CB CG "
+                         "OD1 OD2 N CA C O CB CG CD NE CZ NH1 NH2 N CA C O CB "
+                         "SG N CA C O CB SG N CA C O CB OG N CA C O CB CG1 CG2 "
+                         "N CA C O CB CG ND1 CD2 CE1 NE2 N CA C O N CA C O CB "
+                         "CG CD1 CD2 NE1 CE2 CE3 CZ2 CZ3 CH2 N CA C O CB SG N "
+                         "CA C O N CA C O N CA C O CA N C O CB CG OD1 ND2 N CA "
+                         "C O CB CG OD1 OD2 N CA C O CB CG CD1 CD2 CE1 CE2 CZ "
+                         "OH N CA C O CB SG N CA C O CB OG N CA C O N CA C O N "
                          "CA C O CB CG OD1 ND2 N CA C O CB SG N CA C O CB CG "
-                         "CD OE1 NE2 N CA C O CB CG CD1 CD2 CE1 CE2 CZ OH N "
-                         "CA C O CB CG CD NE CZ NH1 NH2 N CA C O CB SG")
+                         "CD OE1 NE2 N CA C O CB CG CD1 CD2 CE1 CE2 CZ OH N CA "
+                         "C O CB CG CD NE CZ NH1 NH2 N CA C O CB SG")
+
         self.assertEqual(" ".join(atom.element for atom in chain.get_atoms()),
                          "C N C C O C C C N C N N N C C O C S N C C O N C C O "
                          "C O N C C O C C C O N N C C O N C C O N C C O N C C "
@@ -502,14 +520,14 @@ class ParseTest(unittest.TestCase):
                          "N C C O C C C O N N C C O C C O O N C C O C C C N C "
                          "N N N C C O C S N C C O C S N C C O C O N C C O C C "
                          "C N C C O C C N C C N N C C O N C C O C C C C N C C "
-                         "C C C N C C O C S N C C O N C C O N C C O N C C O C "
+                         "C C C N C C O C S N C C O N C C O N C C O C N C O C "
                          "C O N N C C O C C O O N C C O C C C C C C C O N C C "
                          "O C S N C C O C O N C C O N C C O N C C O C C O N N "
                          "C C O C S N C C O C C C O N N C C O C C C C C C C O "
                          "N C C O C C C N C N N N C C O C S")
 
     def test_pdbio_write_truncated(self):
-        """Test parsing of truncated lines"""
+        """Test parsing of truncated lines."""
         io = PDBIO()
         struct = self.structure
         # Write to temp file
@@ -526,12 +544,102 @@ class ParseTest(unittest.TestCase):
         finally:
             os.remove(filename)
 
-    def test_deepcopy_of_structure_with_disorder(self):
-        """Test deepcopy of a structure with disordered atoms.
+    # Tests for sorting methods
+    def test_comparison_entities(self):
+        """Test comparing and sorting the several SMCRA objects"""
 
-        Shouldn't cause recursion.
-        """
-        _ = deepcopy(self.structure)
+        struct = self.structure
+        # Test deepcopy of a structure with disordered atoms
+        struct2 = deepcopy(struct)
+
+        # Sorting (<, >, <=, <=)
+        # Chains (same code as models)
+        model = struct[1]
+        chains = [c.id for c in sorted(model)]
+        self.assertEqual(chains, ['A', 'B', 'C', ' '])
+        # Residues
+        residues = [r.id[1] for r in sorted(struct[1]['C'])]
+        self.assertEqual(residues, [1, 2, 3, 4, 0])
+        # Atoms
+        for residue in struct.get_residues():
+            old = [a.name for a in residue]
+            new = [a.name for a in sorted(residue)]
+
+            special = [a for a in ('N', 'CA', 'C', 'O') if a in old]
+            len_special = len(special)
+            # Placed N, CA, C, O first?
+            self.assertEqual(new[:len_special], special,
+                            "Sorted residue did not place N, CA, C, O first: %s" % new)
+            # Placed everyone else alphabetically?
+            self.assertEqual(new[len_special:], sorted(new[len_special:]),
+                            "After N, CA, C, O order Should be alphabetical: %s" % new)
+        # DisorderedResidue
+        residues = [r.id[1] for r in sorted(struct[1]['A'])][79:81]
+        self.assertEqual(residues, [80, 81])
+        # Insertion code + hetflag + chain
+        residues = [r for r in struct[1]['B']] + [struct[1]['A'][44]]
+        self.assertEqual([("{}" * 4).format(r.parent.id, *r.id) for r in sorted(residues)],
+                         ['A 44 ', 'B 44 ', 'B 46 ', 'B 47 ', 'B 48 ', 'B 49 ', 'B 50 ',
+                          'B 51 ', 'B 51A', 'B 52 ', 'BH_SEP45 ', 'BW0 '])
+        # DisorderedAtom
+        atoms = [a.altloc for a in sorted(struct[1]['A'][74]['OD1'])]
+        self.assertEqual(atoms, ['A', 'B'])
+
+        # Comparisons
+        # Structure
+        self.assertEqual(struct, struct2)
+        self.assertLessEqual(struct, struct2)
+        self.assertGreaterEqual(struct, struct2)
+        struct2.id = 'new_id'
+        self.assertNotEqual(struct, struct2)
+        self.assertLess(struct, struct2)
+        self.assertLessEqual(struct, struct2)
+        self.assertGreater(struct2, struct)
+        self.assertGreaterEqual(struct2, struct)
+
+        # Model
+        self.assertTrue(model == model)  # __eq__ same type
+        self.assertFalse(struct[0] == struct[1])
+
+        self.assertFalse(struct[0] == [])  # __eq__ diff. types
+        self.assertFalse(struct == model)
+
+        # residues with same ID string should not be equal if the parent is not equal
+        res1, res2, res3 = residues[0], residues[-1], struct2[1]['A'][44]
+        self.assertEqual(res1.id, res2.id)
+        self.assertEqual(res2, res3)  # Equality of identical residues with different structure ID
+        self.assertFalse(res1 == res2)
+        self.assertGreater(res1, res2)
+        self.assertGreaterEqual(res1, res2)
+        self.assertLess(res2, res1)
+        self.assertLessEqual(res2, res1)
+
+        # atom should not be equal if the parent is not equal
+        atom1, atom2, atom3 = res1['CA'], res2['CA'], res3['CA']
+        self.assertEqual(atom2, atom3)  # Equality of identical atoms with different structure ID
+        self.assertGreater(atom1, atom2)
+        self.assertGreaterEqual(atom1, atom2)
+        self.assertGreaterEqual(atom2, atom3)
+        self.assertNotEqual(atom1, atom2)
+        self.assertLess(atom2, atom1)
+        self.assertLessEqual(atom2, atom1)
+        self.assertLessEqual(atom2, atom3)
+
+        # In Py2 this will be True/False, in Py3 it will raise a TypeError.
+        try:
+            self.assertTrue(atom1 < res1)  # __gt__ diff. types
+        except TypeError:
+            pass
+
+        try:
+            self.assertTrue(struct > model)  # __gt__ diff. types
+        except TypeError:
+            pass
+
+        try:
+            self.assertFalse(struct >= [])  # __le__ diff. types
+        except TypeError:
+            pass
 
 
 class ParseReal(unittest.TestCase):
@@ -548,6 +656,23 @@ class ParseReal(unittest.TestCase):
             self.assertFalse(len(struct))
         finally:
             os.remove(filename)
+
+    def test_residue_sort(self):
+        """Sorting atoms in residues."""
+        parser = PDBParser(PERMISSIVE=False)
+        structure = parser.get_structure("example", "PDB/1A8O.pdb")
+        for residue in structure.get_residues():
+            old = [a.name for a in residue]
+            new = [a.name for a in sorted(residue)]
+            special = []
+            for a in ['N', 'CA', 'C', 'O']:
+                if a in old:
+                    special.append(a)
+            special_len = len(special)
+            self.assertEqual(new[0:special_len], special,
+                             "Sorted residue did not place N, CA, C, O first: %s" % new)
+            self.assertEqual(new[special_len:], sorted(new[special_len:]),
+                                 "After N, CA, C, O should be alphabet: %s" % new)
 
     def test_c_n(self):
         """Extract polypeptides from 1A80."""
@@ -704,7 +829,7 @@ class ParseReal(unittest.TestCase):
                 self.assertEqual(model.serial_num, model.id + 1)
 
         def confirm_single_end(fname):
-            """Ensure there is only one END statement in multi-model files"""
+            """Ensure there is only one END statement in multi-model files."""
             with open(fname) as handle:
                 end_stment = []
                 for iline, line in enumerate(handle):
@@ -732,14 +857,19 @@ class ParseReal(unittest.TestCase):
 
 
 class WriteTest(unittest.TestCase):
+
     def setUp(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", PDBConstructionWarning)
             self.parser = PDBParser(PERMISSIVE=1)
+            self.mmcif_parser = MMCIFParser()
             self.structure = self.parser.get_structure("example", "PDB/1A8O.pdb")
+            self.mmcif_file = "PDB/1A8O.cif"
+            self.mmcif_multimodel_pdb_file = "PDB/1SSU_mod.pdb"
+            self.mmcif_multimodel_mmcif_file = "PDB/1SSU_mod.cif"
 
     def test_pdbio_write_structure(self):
-        """Write a full structure using PDBIO"""
+        """Write a full structure using PDBIO."""
         io = PDBIO()
         struct1 = self.structure
         # Write full model to temp file
@@ -773,7 +903,7 @@ class WriteTest(unittest.TestCase):
             os.remove(filename)
 
     def test_pdbio_write_custom_residue(self):
-        """Write a chainless residue using PDBIO"""
+        """Write a chainless residue using PDBIO."""
         io = PDBIO()
 
         res = Residue.Residue((' ', 1, ' '), 'DUM', '')
@@ -796,13 +926,11 @@ class WriteTest(unittest.TestCase):
             os.remove(filename)
 
     def test_pdbio_select(self):
-        """Write a selection of the structure using a Select subclass"""
-
+        """Write a selection of the structure using a Select subclass."""
         # Selection class to filter all alpha carbons
         class CAonly(Select):
-            """
-            Accepts only CA residues
-            """
+            """Accepts only CA residues."""
+
             def accept_atom(self, atom):
                 if atom.name == "CA" and atom.element == "C":
                     return 1
@@ -822,7 +950,7 @@ class WriteTest(unittest.TestCase):
             os.remove(filename)
 
     def test_pdbio_missing_occupancy(self):
-        """Write PDB file with missing occupancy"""
+        """Write PDB file with missing occupancy."""
         io = PDBIO()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", PDBConstructionWarning)
@@ -843,14 +971,111 @@ class WriteTest(unittest.TestCase):
         finally:
             os.remove(filename)
 
+    def test_mmcifio_write_structure(self):
+        """Write a full structure using MMCIFIO."""
+        io = MMCIFIO()
+        struct1 = self.structure
+        # Write full model to temp file
+        io.set_structure(struct1)
+        filenumber, filename = tempfile.mkstemp()
+        os.close(filenumber)
+        try:
+            io.save(filename)
+            struct2 = self.mmcif_parser.get_structure("1a8o", filename)
+            nresidues = len(list(struct2.get_residues()))
+            self.assertEqual(len(struct2), 1)
+            self.assertEqual(nresidues, 158)
+        finally:
+            os.remove(filename)
+
+    def test_mmcifio_write_residue(self):
+        """Write a single residue using MMCIFIO."""
+        io = MMCIFIO()
+        struct1 = self.structure
+        residue1 = list(struct1.get_residues())[0]
+        # Write full model to temp file
+        io.set_structure(residue1)
+        filenumber, filename = tempfile.mkstemp()
+        os.close(filenumber)
+        try:
+            io.save(filename)
+            struct2 = self.mmcif_parser.get_structure("1a8o", filename)
+            nresidues = len(list(struct2.get_residues()))
+            self.assertEqual(nresidues, 1)
+        finally:
+            os.remove(filename)
+
+    def test_mmcifio_select(self):
+        """Write a selection of the structure using a Select subclass."""
+        # Selection class to filter all alpha carbons
+        class CAonly(Select):
+            """Accepts only CA residues."""
+
+            def accept_atom(self, atom):
+                if atom.name == "CA" and atom.element == "C":
+                    return 1
+
+        io = MMCIFIO()
+        struct1 = self.structure
+        # Write to temp file
+        io.set_structure(struct1)
+        filenumber, filename = tempfile.mkstemp()
+        os.close(filenumber)
+        try:
+            io.save(filename, CAonly())
+            struct2 = self.mmcif_parser.get_structure("1a8o", filename)
+            nresidues = len(list(struct2.get_residues()))
+            self.assertEqual(nresidues, 70)
+        finally:
+            os.remove(filename)
+
+    def test_mmcifio_write_dict(self):
+        """Write an mmCIF dictionary out, read it in and compare them."""
+        d1 = MMCIF2Dict(self.mmcif_file)
+        io = MMCIFIO()
+        # Write to temp file
+        io.set_dict(d1)
+        filenumber, filename = tempfile.mkstemp()
+        os.close(filenumber)
+        try:
+            io.save(filename)
+            d2 = MMCIF2Dict(filename)
+            k1 = sorted(d1.keys())
+            k2 = sorted(d2.keys())
+            self.assertEqual(k1, k2)
+            for key in k1:
+                self.assertEqual(d1[key], d2[key])
+        finally:
+            os.remove(filename)
+
+    def test_mmcifio_multimodel(self):
+        """Write a multi-model, multi-chain mmCIF file."""
+        pdb_struct = self.parser.get_structure("1SSU_mod_pdb", self.mmcif_multimodel_pdb_file)
+        mmcif_struct = self.mmcif_parser.get_structure("1SSU_mod_mmcif", self.mmcif_multimodel_mmcif_file)
+        io = MMCIFIO()
+        for struct in [pdb_struct, mmcif_struct]:
+            io.set_structure(struct)
+            filenumber, filename = tempfile.mkstemp()
+            os.close(filenumber)
+            try:
+                io.save(filename)
+                struct_in = self.mmcif_parser.get_structure("1SSU_mod_in", filename)
+                self.assertEqual(len(struct_in), 2)
+                self.assertEqual(len(struct_in[1]), 2)
+                self.assertEqual(round(float(struct_in[1]["B"][1]["N"].get_coord()[0]), 3), 6.259)
+            finally:
+                os.remove(filename)
+
 
 class Exposure(unittest.TestCase):
-    "Testing Bio.PDB.HSExposure."
+    """Testing Bio.PDB.HSExposure."""
+
     def setUp(self):
         pdb_filename = "PDB/a_structure.pdb"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", PDBConstructionWarning)
             structure = PDBParser(PERMISSIVE=True).get_structure('X', pdb_filename)
+        structure[1].detach_child('B')
         self.model = structure[1]
         # Look at first chain only
         a_residues = list(self.model["A"].child_list)
@@ -928,7 +1153,7 @@ class Exposure(unittest.TestCase):
 
 
 class Atom_Element(unittest.TestCase):
-    """induces Atom Element from Atom Name"""
+    """induces Atom Element from Atom Name."""
 
     def setUp(self):
         pdb_filename = "PDB/a_structure.pdb"
@@ -938,7 +1163,7 @@ class Atom_Element(unittest.TestCase):
         self.residue = structure[0]['A'][('H_PCA', 1, ' ')]
 
     def test_AtomElement(self):
-        """ Atom Element """
+        """Atom Element."""
         atoms = self.residue.child_list
         self.assertEqual('N', atoms[0].element)  # N
         self.assertEqual('C', atoms[1].element)  # Alpha Carbon
@@ -967,7 +1192,7 @@ class Atom_Element(unittest.TestCase):
                '2HB ', '2HD ', '2HD1', '2HD2', '2HE ', '2HE2', '2HG ', '2HG1',
                '2HG2', '2HH1', '2HH2', '2HZ ', '3H  ', '3HB ', '3HD1', '3HD2',
                '3HE ', '3HG1', '3HG2', '3HZ ', 'HE21'),
-            O=(' OH ',),
+            O=(' OH ',),  # noqa: E741
             C=(' CH2',),
             N=(' NH1', ' NH2'),
         )
@@ -991,17 +1216,17 @@ class IterationTests(unittest.TestCase):
     def test_get_chains(self):
         """Yields chains from different models separately."""
         chains = [chain.id for chain in self.struc.get_chains()]
-        self.assertEqual(chains, ['A', 'A', 'B', ' '])
+        self.assertEqual(chains, ['A', 'A', 'B', 'C', ' '])
 
     def test_get_residues(self):
         """Yields all residues from all models."""
         residues = [resi.id for resi in self.struc.get_residues()]
-        self.assertEqual(len(residues), 167)
+        self.assertEqual(len(residues), 179)
 
     def test_get_atoms(self):
         """Yields all atoms from the structure, excluding duplicates and ALTLOCs which are not parsed."""
         atoms = ["%12s" % str((atom.id, atom.altloc)) for atom in self.struc.get_atoms()]
-        self.assertEqual(len(atoms), 756)
+        self.assertEqual(len(atoms), 835)
 
 
 class ChangingIdTests(unittest.TestCase):
@@ -1013,7 +1238,7 @@ class ChangingIdTests(unittest.TestCase):
                                                   'X', "PDB/a_structure.pdb")
 
     def test_change_model_id(self):
-        """Change the id of a model"""
+        """Change the id of a model."""
         for model in self.struc:
             break  # Get first model in structure
         model.id = 2
@@ -1022,7 +1247,7 @@ class ChangingIdTests(unittest.TestCase):
         self.assertNotIn(0, self.struc)
 
     def test_change_model_id_raises(self):
-        """Cannot change id to a value already in use by another child"""
+        """Cannot change id to a value already in use by another child."""
         model = next(iter(self.struc))
         with self.assertRaises(ValueError):
             model.id = 1
@@ -1032,7 +1257,7 @@ class ChangingIdTests(unittest.TestCase):
         self.assertIn(1, self.struc)
 
     def test_change_chain_id(self):
-        """Change the id of a model"""
+        """Change the id of a model."""
         chain = next(iter(self.struc.get_chains()))
         chain.id = "R"
         self.assertEqual(chain.id, "R")
@@ -1040,7 +1265,7 @@ class ChangingIdTests(unittest.TestCase):
         self.assertIn("R", model)
 
     def test_change_residue_id(self):
-        """Change the id of a residue"""
+        """Change the id of a residue."""
         chain = next(iter(self.struc.get_chains()))
         res = chain[('H_PCA', 1, ' ')]
         res.id = (' ', 1, ' ')
@@ -1051,9 +1276,7 @@ class ChangingIdTests(unittest.TestCase):
         self.assertEqual(chain[(' ', 1, ' ')], res)
 
     def test_full_id_is_updated_residue(self):
-        """
-        Invalidate cached full_ids if an id is changed.
-        """
+        """Invalidate cached full_ids if an id is changed."""
         atom = next(iter(self.struc.get_atoms()))
 
         # Generate the original full id.
@@ -1073,9 +1296,7 @@ class ChangingIdTests(unittest.TestCase):
         self.assertEqual(new_id, ('X', 0, 'A', (' ', 1, ' '), ('N', ' ')))
 
     def test_full_id_is_updated_chain(self):
-        """
-        Invalidate cached full_ids if an id is changed.
-        """
+        """Invalidate cached full_ids if an id is changed."""
         atom = next(iter(self.struc.get_atoms()))
 
         # Generate the original full id.
@@ -1124,10 +1345,7 @@ class TransformTests(unittest.TestCase):
         self.a = self.r.get_list()[0]
 
     def get_total_pos(self, o):
-        """
-        Returns the sum of the positions of atoms in an entity along
-        with the number of atoms.
-        """
+        """Sum of positions of atoms in an entity along with the number of atoms."""
         if hasattr(o, "get_coord"):
             return o.get_coord(), 1
         total_pos = numpy.array((0.0, 0.0, 0.0))
@@ -1139,9 +1357,7 @@ class TransformTests(unittest.TestCase):
         return total_pos, total_count
 
     def get_pos(self, o):
-        """
-        Returns the average atom position in an entity.
-        """
+        """Average atom position in an entity."""
         pos, count = self.get_total_pos(o)
         return 1.0 * pos / count
 
@@ -1156,6 +1372,132 @@ class TransformTests(unittest.TestCase):
             newpos_check = numpy.dot(oldpos, rotation) + translation
             for i in range(0, 3):
                 self.assertAlmostEqual(newpos[i], newpos_check[i])
+
+    def test_Vector(self):
+        """Test Vector object."""
+        v1 = Vector(0, 0, 1)
+        v2 = Vector(0, 0, 0)
+        v3 = Vector(0, 1, 0)
+        v4 = Vector(1, 1, 0)
+
+        self.assertEqual(calc_angle(v1, v2, v3), 1.5707963267948966)
+        self.assertEqual(calc_dihedral(v1, v2, v3, v4), 1.5707963267948966)
+        self.assertTrue(numpy.array_equal((v1 - v2).get_array(), numpy.array([0.0, 0.0, 1.0])))
+        self.assertTrue(numpy.array_equal((v1 - 1).get_array(), numpy.array([-1.0, -1.0, 0.0])))
+        self.assertTrue(numpy.array_equal((v1 - (1, 2, 3)).get_array(), numpy.array([-1.0, -2.0, -2.0])))
+        self.assertTrue(numpy.array_equal((v1 + v2).get_array(), numpy.array([0.0, 0.0, 1.0])))
+        self.assertTrue(numpy.array_equal((v1 + 3).get_array(), numpy.array([3.0, 3.0, 4.0])))
+        self.assertTrue(numpy.array_equal((v1 + (1, 2, 3)).get_array(), numpy.array([1.0, 2.0, 4.0])))
+        self.assertTrue(numpy.array_equal(v1.get_array() / 2, numpy.array([0, 0, 0.5])))
+        self.assertTrue(numpy.array_equal(v1.get_array() / 2, numpy.array([0, 0, 0.5])))
+        self.assertEqual(v1 * v2, 0.0)
+        self.assertTrue(numpy.array_equal((v1 ** v2).get_array(), numpy.array([0.0, -0.0, 0.0])))
+        self.assertTrue(numpy.array_equal((v1 ** 2).get_array(), numpy.array([0.0, 0.0, 2.0])))
+        self.assertTrue(numpy.array_equal((v1 ** (1, 2, 3)).get_array(), numpy.array([0.0, 0.0, 3.0])))
+        self.assertEqual(v1.norm(), 1.0)
+        self.assertEqual(v1.normsq(), 1.0)
+        v1[2] = 10
+        self.assertEqual(v1.__getitem__(2), 10)
+
+        # Vector normalization
+        v1 = Vector([2, 0, 0])
+        self.assertTrue(numpy.array_equal(v1.normalized().get_array(), numpy.array([1, 0, 0])))
+        # State of v1 should not be affected by `normalized`
+        self.assertTrue(numpy.array_equal(v1.get_array(), numpy.array([2, 0, 0])))
+        v1.normalize()
+        # State of v1 should be affected by `normalize`
+        self.assertTrue(numpy.array_equal(v1.get_array(), numpy.array([1, 0, 0])))
+
+    def test_refmat(self):
+        v1 = Vector(0, 0, 1)
+        v2 = Vector(0, 1, 0)
+        ref = refmat(v1, v2)
+        self.assertTrue(numpy.allclose(ref[0], [1.0, 0.0, 0.0]))
+        self.assertTrue(numpy.allclose(ref[1], [0.0, 0.0, 1.0]))
+        self.assertTrue(numpy.allclose(ref[2], [0.0, 1.0, 0.0]))
+        self.assertTrue(numpy.allclose(v1.left_multiply(ref).get_array(), [0.0, 1.0, 0.0]))
+
+    def test_rotmat(self):
+        # Regular 90 deg rotation
+        v1 = Vector(0, 0, 1)
+        v2 = Vector(0, 1, 0)
+        rot = rotmat(v1, v2)
+        self.assertTrue(numpy.allclose(rot[0], numpy.array([1.0, 0.0, 0.0])))
+        self.assertTrue(numpy.allclose(rot[1], numpy.array([0.0, 0.0, 1.0])))
+        self.assertTrue(numpy.allclose(rot[2], numpy.array([0.0, -1.0, 0.0])))
+        self.assertTrue(numpy.allclose(v1.left_multiply(rot).get_array(), [0.0, 1.0, 0.0]))
+        self.assertTrue(numpy.allclose(v1.right_multiply(numpy.transpose(rot)).get_array(), [0.0, 1.0, 0.0]))
+
+        # Applying rotmat works when the rotation is 180 deg (singularity)
+        v1 = Vector([1.0, 0.8, 0])
+        v2 = Vector([-1.0, -0.8, 0])
+        rot = rotmat(v1, v2)
+        v3 = v1.left_multiply(rot)
+        self.assertTrue(numpy.allclose(v2.get_array(), v3.get_array()))
+
+        # Applying rotmat works when the rotation is 0 deg (singularity)
+        v1 = Vector([1.0, 0.8, 0])
+        v2 = Vector([1.0, 0.8, 0])
+        rot = rotmat(v1, v2)
+        v3 = v1.left_multiply(rot)
+        self.assertTrue(numpy.allclose(v1.get_array(), v3.get_array()))
+
+    def test_m2rotaxis(self):
+        # Regular 90 deg rotation
+        v1 = Vector(0, 0, 1)
+        v2 = Vector(0, 1, 0)
+        rot = rotmat(v1, v2)
+        angle, axis = m2rotaxis(rot)
+        self.assertTrue(numpy.allclose(axis.get_array(), [-1.0, 0.0, 0.0]))
+        self.assertTrue(abs(angle - numpy.pi / 2) < 1e-5)
+
+        # 180 deg rotation
+        v1 = Vector([1.0, 0.8, 0])
+        v2 = Vector([-1.0, -0.8, 0])
+        rot = rotmat(v1, v2)
+        angle, axis = m2rotaxis(rot)
+        self.assertTrue(abs(axis * v1) < 1e-5)  # axis orthogonal to v1
+        self.assertTrue(abs(angle - numpy.pi) < 1e-5)
+
+        # 0 deg rotation. Axis must be [1, 0, 0] as per Vector documentation
+        v1 = Vector([1.0, 0.8, 0])
+        v2 = Vector([1.0, 0.8, 0])
+        rot = rotmat(v1, v2)
+        angle, axis = m2rotaxis(rot)
+        self.assertTrue(numpy.allclose(axis.get_array(), [1, 0, 0]))
+        self.assertTrue(abs(angle) < 1e-5)
+
+    def test_Vector_angles(self):
+        angle = random() * numpy.pi
+        axis = Vector(random(3) - random(3))
+        axis.normalize()
+        m = rotaxis(angle, axis)
+        cangle, caxis = m2rotaxis(m)
+        self.assertAlmostEqual(angle, cangle, places=3)
+        self.assertTrue(numpy.allclose(list(map(int, (axis - caxis).get_array())), [0, 0, 0]),
+                        "Want %r and %r to be almost equal" % (axis.get_array(), caxis.get_array()))
+
+
+class PDBParserTests(unittest.TestCase):
+    """Test PDBParser module."""
+
+    def test_PDBParser(self):
+        """Walk down the structure hierarchy and test parser reliability."""
+        p = PDBParser(PERMISSIVE=True)
+        filename = "PDB/1A8O.pdb"
+        s = p.get_structure("scr", filename)
+        for m in s:
+            p = m.get_parent()
+            self.assertEqual(s, p)
+            for c in m:
+                p = c.get_parent()
+                self.assertEqual(m, p)
+                for r in c:
+                    p = r.get_parent()
+                    self.assertEqual(c, p)
+                    for a in r:
+                        p = a.get_parent()
+                        self.assertEqual(r.get_resname(), p.get_resname())
 
 
 class CopyTests(unittest.TestCase):
@@ -1175,7 +1517,7 @@ class CopyTests(unittest.TestCase):
         self.assertFalse(self.a is aa)
         self.assertFalse(self.a.get_coord() is aa.get_coord())
 
-    def test_entitity_copy(self):
+    def test_entity_copy(self):
         """Make a copy of a residue."""
         for e in (self.s, self.m, self.c, self.r):
             ee = e.copy()
@@ -1184,14 +1526,15 @@ class CopyTests(unittest.TestCase):
 
 
 def eprint(*args, **kwargs):
-    '''Helper function that prints to stderr.'''
+    """Helper function that prints to stderr."""
     print(*args, file=sys.stderr, **kwargs)
 
 
 def will_it_float(s):
-    '''
-    Helper function that converts the input into a float if it is a number.
-    Otherwise if the input is a string it is returned as it is.'''
+    """Helper function that converts the input into a float if it is a number.
+
+    If the input is a string, the output does not change.
+    """
     try:
         return float(s)
     except ValueError:
@@ -1203,13 +1546,14 @@ class DsspTests(unittest.TestCase):
 
     See also test_DSSP_tool.py for run time testing with the tool.
     """
+
     def test_DSSP_file(self):
-        """Test parsing of pregenerated DSSP"""
+        """Test parsing of pregenerated DSSP."""
         dssp, keys = make_dssp_dict("PDB/2BEG.dssp")
         self.assertEqual(len(dssp), 130)
 
     def test_DSSP_noheader_file(self):
-        """Test parsing of pregenerated DSSP missing header information"""
+        """Test parsing of pregenerated DSSP missing header information."""
         # New DSSP prints a line containing only whitespace and "."
         dssp, keys = make_dssp_dict("PDB/2BEG_noheader.dssp")
         self.assertEqual(len(dssp), 130)
@@ -1235,9 +1579,7 @@ class DsspTests(unittest.TestCase):
         self.assertEqual((dssp_indices & hb_indices), hb_indices)
 
     def test_DSSP_in_model_obj(self):
-        '''
-        Test that all the elements are added correctly to the xtra attribute of the input model object.
-        '''
+        """All elements correctly added to xtra attribute of input model object."""
         p = PDBParser()
         s = p.get_structure("example", "PDB/2BEG.pdb")
         m = s[0]
@@ -1331,6 +1673,33 @@ class NACCESSTests(unittest.TestCase):
         with open("PDB/1A8O.asa") as asa:
             naccess = process_asa_data(asa)
         self.assertEqual(len(naccess), 524)
+
+
+class ResidueDepthTests(unittest.TestCase):
+    """Tests for ResidueDepth module, except for running MSMS itself."""
+    def test_pdb_to_xyzr(self):
+        """Test generation of xyzr (atomic radii) file"""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PDBConstructionWarning)
+            p = PDBParser(PERMISSIVE=1)
+            structure = p.get_structure("example", "PDB/1A8O.pdb")
+
+        # Read radii produced with original shell script
+        with open('PDB/1A8O.xyzr') as handle:
+            msms_radii = []
+            for line in handle:
+                fields = line.split()
+                radius = float(fields[3])
+                msms_radii.append(radius)
+
+        model = structure[0]
+        biopy_radii = []
+        for atom in model.get_atoms():
+            biopy_radii.append(_get_atom_radius(atom, rtype='united'))
+
+        assert len(msms_radii) == len(biopy_radii)
+        self.assertSequenceEqual(msms_radii, biopy_radii)
+
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner(verbosity=2)

@@ -2,19 +2,17 @@
 # This code is part of the Biopython distribution and governed by its
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
-"""This module provides classes to work with Phenotype Microarray data.
+"""Classes to work with Phenotype Microarray data.
 
 More information on the single plates can be found here: http://www.biolog.com/
 
 Classes:
-
  - PlateRecord - Object that contain time course data on each well of the
    plate, as well as metadata (if any).
  - WellRecord - Object that contains the time course data of a single well
  - JsonWriter - Writer of PlateRecord objects in JSON format.
 
 Functions:
-
  - JsonIterator -  Incremental PM JSON parser, this is an iterator that returns
    PlateRecord objects.
  - CsvIterator - Incremental PM CSV parser, this is an iterator that returns
@@ -91,7 +89,7 @@ class PlateRecord(object):
     >>> 'A01' in plate
     True
 
-    All the wells belonging to a "row" (identified by the first charachter of
+    All the wells belonging to a "row" (identified by the first character of
     the well id) in the plate can be obtained:
 
     >>> for well in plate.get_row('H'):
@@ -135,6 +133,7 @@ class PlateRecord(object):
     """
 
     def __init__(self, plateid, wells=None):
+        """Initialize the class."""
         self.id = plateid
 
         if wells is None:
@@ -157,12 +156,12 @@ class PlateRecord(object):
         self._update()
 
     def _update(self):
-        """Update the rows and columns string identifiers."""
+        """Update the rows and columns string identifiers (PRIVATE)."""
         self._rows = sorted(set(x[0] for x in self._wells))
         self._columns = sorted(set(x[1:] for x in self._wells))
 
     def _is_well(self, obj):
-        """Check if the given object is a WellRecord object
+        """Check if the given object is a WellRecord object (PRIVATE).
 
         Used both for the class constructor and the __setitem__ method
         """
@@ -352,7 +351,7 @@ class PlateRecord(object):
         return False
 
     def __len__(self):
-        """Returns the number of wells in this plate"""
+        """Return the number of wells in this plate."""
         return len(self._wells)
 
     def __eq__(self, other):
@@ -365,12 +364,12 @@ class PlateRecord(object):
         return not self.__eq__(other)
 
     def __add__(self, plate):
-        """Add another PlateRecord object
+        """Add another PlateRecord object.
 
         The wells in both plates must be the same
 
         A new PlateRecord object is returned, having the same id as the
-        left operand
+        left operand.
         """
         if not isinstance(plate, PlateRecord):
             raise TypeError('Expecting a PlateRecord object')
@@ -388,12 +387,12 @@ class PlateRecord(object):
         return newp
 
     def __sub__(self, plate):
-        """Subtract another PlateRecord object
+        """Subtract another PlateRecord object.
 
         The wells in both plates must be the same
 
         A new PlateRecord object is returned, having the same id as the
-        left operand
+        left operand.
         """
         if not isinstance(plate, PlateRecord):
             raise TypeError('Expecting a PlateRecord object')
@@ -411,7 +410,7 @@ class PlateRecord(object):
         return newp
 
     def get_row(self, row):
-        """Get all the wells of a given row
+        """Get all the wells of a given row.
 
         A row is identified with a letter (e.g. 'A')
         """
@@ -428,7 +427,7 @@ class PlateRecord(object):
             yield self._wells[w]
 
     def get_column(self, column):
-        """Get all the wells of a given column
+        """Get all the wells of a given column.
 
         A column is identified with a number (e.g. '6')
         """
@@ -444,7 +443,7 @@ class PlateRecord(object):
             yield self._wells[w]
 
     def subtract_control(self, control='A01', wells=None):
-        """Subtract a 'control' well from the other plates wells
+        """Subtract a 'control' well from the other plates wells.
 
         By default the control is subtracted to all wells, unless
         a list of well ID is provided
@@ -476,7 +475,7 @@ class PlateRecord(object):
         return newp
 
     def __repr__(self):
-        """Returns a (truncated) representation of the plate for debugging."""
+        """Return a (truncated) representation of the plate for debugging."""
         if len(self._wells) > 4:
             # Show the last well and the first three
             return "%s('%s, ..., %s')" % (self.__class__.__name__,
@@ -495,7 +494,7 @@ class PlateRecord(object):
                                ))
 
     def __str__(self):
-        """A human readable summary of the record (string).
+        """Return a human readable summary of the record (string).
 
         The python built in function str works by calling the object's ___str__
         method.  e.g.
@@ -526,11 +525,10 @@ class PlateRecord(object):
 
 
 class WellRecord(object):
-    """WellRecord object stores all the time course signals of a phenotype
-    Microarray well.
+    """WellRecord stores all time course signals of a phenotype Microarray well.
 
-    The single time points and signals can be
-    accessed iterating on the WellRecord or using lists indeces or slices:
+    The single time points and signals can be accessed iterating on the
+    WellRecord or using lists indeces or slices:
 
     >>> from Bio import phenotype
     >>> plate = phenotype.read("plate.csv", "pm-csv")
@@ -584,7 +582,7 @@ class WellRecord(object):
     >>> print(well.slope, well.model)
     (61.853516785566917, 'logistic')
 
-    If not sigmoid function is specified, the first one that is succesfully
+    If not sigmoid function is specified, the first one that is successfully
     fitted is used. The user can also specify a specific function.
 
     >>> well.fit('gompertz')
@@ -596,6 +594,7 @@ class WellRecord(object):
     """
 
     def __init__(self, wellid, plate=None, signals=None):
+        """Initialize the class."""
         if plate is None:
             self.plate = PlateRecord(None)
         else:
@@ -625,9 +624,7 @@ class WellRecord(object):
             self._signals = signals
 
     def _interpolate(self, time):
-        """Private method to get a linear interpolation of the signals
-        at certain time points.
-        """
+        """Linear interpolation of the signals at certain time points (PRIVATE)."""
         times = sorted(self._signals.keys())
 
         return np.interp(time,
@@ -636,8 +633,7 @@ class WellRecord(object):
                          left=np.nan, right=np.nan)
 
     def __setitem__(self, time, signal):
-        """Assign a signal at a certain time point.
-        """
+        """Assign a signal at a certain time point."""
         try:
             time = float(time)
         except ValueError:
@@ -650,8 +646,7 @@ class WellRecord(object):
         self._signals[time] = signal
 
     def __getitem__(self, time):
-        """Returns a subset of signals or a single signal.
-        """
+        """Return a subset of signals or a single signal."""
         if isinstance(time, slice):
             # Fix the missing values in the slice
             if time.start is None:
@@ -694,7 +689,7 @@ class WellRecord(object):
         return not self.__eq__(other)
 
     def __add__(self, well):
-        """Add another WellRecord object
+        """Add another WellRecord object.
 
         A new WellRecord object is returned, having the same id as the
         left operand
@@ -713,7 +708,7 @@ class WellRecord(object):
         return neww
 
     def __sub__(self, well):
-        """Subtract another WellRecord object
+        """Subtract another WellRecord object.
 
         A new WellRecord object is returned, having the same id as the
         left operand
@@ -732,11 +727,11 @@ class WellRecord(object):
         return neww
 
     def __len__(self):
-        """Returns the number of time points sampled"""
+        """Return the number of time points sampled."""
         return len(self._signals)
 
     def __repr__(self):
-        """Returns a (truncated) representation of the signals for debugging."""
+        """Return a (truncated) representation of the signals for debugging."""
         if len(self) > 7:
             # Shows the last time point and the first five
             return "%s('%s, ..., %s')" % (self.__class__.__name__,
@@ -748,9 +743,9 @@ class WellRecord(object):
                                ', '.join([str(x) for x in self.get_raw()]))
 
     def __str__(self):
-        """A human readable summary of the record (string).
+        """Return a human readable summary of the record (string).
 
-        The python built in function str works by calling the object's ___str__
+        The python built-in function str works by calling the object's ___str__
         method.  e.g.
 
         >>> from Bio import phenotype
@@ -780,15 +775,15 @@ class WellRecord(object):
         return "\n".join(lines)
 
     def get_raw(self):
-        """Get a list of time/signal pairs"""
+        """Get a list of time/signal pairs."""
         return [(t, self._signals[t]) for t in sorted(self._signals.keys())]
 
     def get_times(self):
-        """Get a list of the recorded time points"""
+        """Get a list of the recorded time points."""
         return sorted(self._signals.keys())
 
     def get_signals(self):
-        """Get a list of the recorded signals (ordered by collection time)"""
+        """Get a list of the recorded signals (ordered by collection time)."""
         return [self._signals[t] for t in sorted(self._signals.keys())]
 
     def fit(self, function=("gompertz", "logistic", "richards")):
@@ -799,11 +794,11 @@ class WellRecord(object):
         calculated.
 
         By default the following fitting functions will be used in order:
-        * gompertz
-        * logistic
-        * richards
+         - gompertz
+         - logistic
+         - richards
 
-        The first function that is succesfuly fitted to the signals will
+        The first function that is successfully fitted to the signals will
         be used to extract the curve parameters and update ``.area`` and
         ``.model``. If no function can be fitted an exception is raised.
 
@@ -854,10 +849,11 @@ class WellRecord(object):
 
 
 def JsonIterator(handle):
-    """Generator function to iterate over PM json records (as PlateRecord
-    objects).
+    """Iterate over PM json records as PlateRecord objects.
 
-    handle - input file
+    Arguments:
+     - handle - input file
+
     """
     try:
         data = json.load(handle)
@@ -932,10 +928,11 @@ def JsonIterator(handle):
 
 
 def CsvIterator(handle):
-    """Generator function to iterate over PM csv records (as PlateRecord
-    objects).
+    """Iterate over PM csv records as PlateRecord objects.
 
-    handle - input file
+    Arguments:
+     - handle - input file
+
     """
     plate = None
     data = False
@@ -1114,6 +1111,7 @@ class JsonWriter(object):
     """Class to write PM Json format files."""
 
     def __init__(self, plates):
+        """Initialize the class."""
         self.plates = plates
 
     def write(self, handle):

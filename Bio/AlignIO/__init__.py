@@ -61,16 +61,16 @@ Use the function Bio.AlignIO.write(...), which takes a complete set of
 Alignment objects (either as a list, or an iterator), an output file handle
 (or filename in recent versions of Biopython) and of course the file format::
 
-  from Bio import AlignIO
-  alignments = ...
-  count = SeqIO.write(alignments, "example.faa", "fasta")
+    from Bio import AlignIO
+    alignments = ...
+    count = SeqIO.write(alignments, "example.faa", "fasta")
 
 If using a handle make sure to close it to flush the data to the disk::
 
-  from Bio import AlignIO
-  alignments = ...
-  with open("example.faa", "w") as handle:
-    count = SeqIO.write(alignments, handle, "fasta")
+    from Bio import AlignIO
+    alignments = ...
+    with open("example.faa", "w") as handle:
+        count = SeqIO.write(alignments, handle, "fasta")
 
 In general, you are expected to call this function once (with all your
 alignments) and then close the file handle.  However, for file formats
@@ -114,6 +114,7 @@ names are also used in Bio.SeqIO and include the following:
   - phylip-sequential - Sequential PHYLIP.
   - phylip-relaxed - PHYLIP like format allowing longer names.
   - stockholm - A richly annotated alignment file format used by PFAM.
+  - mauve - Output from progressiveMauve/Mauve
 
 Note that while Bio.AlignIO can read all the above file formats, it cannot
 write to all of them.
@@ -152,6 +153,7 @@ from . import PhylipIO
 from . import EmbossIO
 from . import FastaIO
 from . import MafIO
+from . import MauveIO
 
 # Convention for format names is "mainname-subtype" in lower case.
 # Please use the same names as BioPerl and EMBOSS where possible.
@@ -161,6 +163,7 @@ _FormatToIterator = {  # "fasta" is done via Bio.SeqIO
                      "emboss": EmbossIO.EmbossIterator,
                      "fasta-m10": FastaIO.FastaM10Iterator,
                      "maf": MafIO.MafIterator,
+                     "mauve": MauveIO.MauveIterator,
                      "nexus": NexusIO.NexusIterator,
                      "phylip": PhylipIO.PhylipIterator,
                      "phylip-sequential": PhylipIO.SequentialPhylipIterator,
@@ -170,13 +173,14 @@ _FormatToIterator = {  # "fasta" is done via Bio.SeqIO
 
 _FormatToWriter = {  # "fasta" is done via Bio.SeqIO
                      # "emboss" : EmbossIO.EmbossWriter, (unfinished)
+                   "clustal": ClustalIO.ClustalWriter,
                    "maf": MafIO.MafWriter,
+                   "mauve": MauveIO.MauveWriter,
                    "nexus": NexusIO.NexusWriter,
                    "phylip": PhylipIO.PhylipWriter,
                    "phylip-sequential": PhylipIO.SequentialPhylipWriter,
                    "phylip-relaxed": PhylipIO.RelaxedPhylipWriter,
                    "stockholm": StockholmIO.StockholmWriter,
-                   "clustal": ClustalIO.ClustalWriter,
                    }
 
 
@@ -184,11 +188,11 @@ def write(alignments, handle, format):
     """Write complete set of alignments to a file.
 
     Arguments:
-      - alignments - A list (or iterator) of MultipleSeqAlignment objects,
-        or a single alignment object.
-      - handle    - File handle object to write to, or filename as string
-        (note older versions of Biopython only took a handle).
-      - format    - lower case string describing the file format to write.
+     - alignments - A list (or iterator) of MultipleSeqAlignment objects,
+       or a single alignment object.
+     - handle    - File handle object to write to, or filename as string
+       (note older versions of Biopython only took a handle).
+     - format    - lower case string describing the file format to write.
 
     You should close the handle after calling this function.
 
@@ -238,16 +242,16 @@ def write(alignments, handle, format):
 
 # This is a generator function!
 def _SeqIO_to_alignment_iterator(handle, format, alphabet=None, seq_count=None):
-    """Uses Bio.SeqIO to create an MultipleSeqAlignment iterator (PRIVATE).
+    """Use Bio.SeqIO to create an MultipleSeqAlignment iterator (PRIVATE).
 
     Arguments:
-      - handle    - handle to the file.
-      - format    - string describing the file format.
-      - alphabet  - optional Alphabet object, useful when the sequence type
-        cannot be automatically inferred from the file itself
-        (e.g. fasta, phylip, clustal)
-      - seq_count - Optional integer, number of sequences expected in each
-        alignment.  Recommended for fasta format files.
+     - handle    - handle to the file.
+     - format    - string describing the file format.
+     - alphabet  - optional Alphabet object, useful when the sequence type
+       cannot be automatically inferred from the file itself
+       (e.g. fasta, phylip, clustal)
+     - seq_count - Optional integer, number of sequences expected in each
+       alignment.  Recommended for fasta format files.
 
     If count is omitted (default) then all the sequences in the file are
     combined into a single MultipleSeqAlignment.
@@ -300,14 +304,14 @@ def parse(handle, format, seq_count=None, alphabet=None):
     """Iterate over an alignment file as MultipleSeqAlignment objects.
 
     Arguments:
-      - handle    - handle to the file, or the filename as a string
-        (note older versions of Biopython only took a handle).
-      - format    - string describing the file format.
-      - alphabet  - optional Alphabet object, useful when the sequence type
-        cannot be automatically inferred from the file itself
-        (e.g. fasta, phylip, clustal)
-      - seq_count - Optional integer, number of sequences expected in each
-        alignment.  Recommended for fasta format files.
+     - handle    - handle to the file, or the filename as a string
+       (note older versions of Biopython only took a handle).
+     - format    - string describing the file format.
+     - alphabet  - optional Alphabet object, useful when the sequence type
+       cannot be automatically inferred from the file itself
+       (e.g. fasta, phylip, clustal)
+     - seq_count - Optional integer, number of sequences expected in each
+       alignment.  Recommended for fasta format files.
 
     If you have the file name in a string 'filename', use:
 
@@ -363,8 +367,8 @@ def parse(handle, format, seq_count=None, alphabet=None):
         elif format in SeqIO._FormatToIterator:
             # Exploit the existing SeqIO parser to the dirty work!
             i = _SeqIO_to_alignment_iterator(fp, format,
-                                                alphabet=alphabet,
-                                                seq_count=seq_count)
+                                             alphabet=alphabet,
+                                             seq_count=seq_count)
         else:
             raise ValueError("Unknown format '%s'" % format)
 
@@ -374,17 +378,17 @@ def parse(handle, format, seq_count=None, alphabet=None):
 
 
 def read(handle, format, seq_count=None, alphabet=None):
-    """Turns an alignment file into a single MultipleSeqAlignment object.
+    """Turn an alignment file into a single MultipleSeqAlignment object.
 
     Arguments:
-      - handle    - handle to the file, or the filename as a string
-        (note older versions of Biopython only took a handle).
-      - format    - string describing the file format.
-      - alphabet  - optional Alphabet object, useful when the sequence type
-        cannot be automatically inferred from the file itself
-        (e.g. fasta, phylip, clustal)
-      - seq_count - Optional integer, number of sequences expected in each
-        alignment.  Recommended for fasta format files.
+     - handle    - handle to the file, or the filename as a string
+       (note older versions of Biopython only took a handle).
+     - format    - string describing the file format.
+     - alphabet  - optional Alphabet object, useful when the sequence type
+       cannot be automatically inferred from the file itself
+       (e.g. fasta, phylip, clustal)
+     - seq_count - Optional integer, number of sequences expected in each
+       alignment.  Recommended for fasta format files.
 
     If the handle contains no alignments, or more than one alignment,
     an exception is raised.  For example, using a PFAM/Stockholm file
@@ -441,11 +445,12 @@ def read(handle, format, seq_count=None, alphabet=None):
 def convert(in_file, in_format, out_file, out_format, alphabet=None):
     """Convert between two alignment files, returns number of alignments.
 
-        - in_file - an input handle or filename
-        - in_format - input file format, lower case string
-        - output - an output handle or filename
-        - out_file - output file format, lower case string
-        - alphabet - optional alphabet to assume
+    Arguments:
+     - in_file - an input handle or filename
+     - in_format - input file format, lower case string
+     - output - an output handle or filename
+     - out_file - output file format, lower case string
+     - alphabet - optional alphabet to assume
 
     **NOTE** - If you provide an output filename, it will be opened which will
     overwrite any existing file without warning. This may happen if even the

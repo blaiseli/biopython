@@ -108,6 +108,7 @@ class DictionaryElement(dict):
 # under each key.
 class StructureElement(dict):
     def __init__(self, keys):
+        """Initialize the class."""
         dict.__init__(self)
         for key in keys:
             dict.__setitem__(self, key, [])
@@ -130,6 +131,7 @@ class StructureElement(dict):
 
 class NotXMLError(ValueError):
     def __init__(self, message):
+        """Initialize the class."""
         self.msg = message
 
     def __str__(self):
@@ -138,6 +140,7 @@ class NotXMLError(ValueError):
 
 class CorruptedXMLError(ValueError):
     def __init__(self, message):
+        """Initialize the class."""
         self.msg = message
 
     def __str__(self):
@@ -152,7 +155,9 @@ class ValidationError(ValueError):
     error. The Bio.Entrez.read and Bio.Entrez.parse functions use validating
     parsers by default (see those functions for more information).
     """
+
     def __init__(self, name):
+        """Initialize the class."""
         self.name = name
 
     def __str__(self):
@@ -194,6 +199,7 @@ class DataHandler(object):
     del Entrez
 
     def __init__(self, validate):
+        """Initialize the class."""
         self.stack = []
         self.errors = []
         self.integers = []
@@ -210,7 +216,7 @@ class DataHandler(object):
         self.is_schema = False
 
     def read(self, handle):
-        """Set up the parser and let it parse the XML results"""
+        """Set up the parser and let it parse the XML results."""
         # HACK: remove Bio._py3k handle conversion, since the Entrez XML parser
         # expects binary data
         if handle.__class__.__name__ == 'EvilHandleHack':
@@ -226,7 +232,6 @@ class DataHandler(object):
             # since the Entrez XML parser expects binary data (bytes)
             from io import StringIO
             if isinstance(handle, StringIO):
-                from io import BytesIO
                 from Bio._py3k import _as_bytes
                 handle = BytesIO(_as_bytes(handle.read()))
         try:
@@ -446,11 +451,16 @@ class DataHandler(object):
                 self.lists.append(name)
 
     def elementDecl(self, name, model):
-        """This callback function is called for each element declaration:
-        <!ELEMENT       name          (...)>
-        encountered in a DTD. The purpose of this function is to determine
-        whether this element should be regarded as a string, integer, list
-        dictionary, structure, or error."""
+        """Call a call-back function for each element declaration in a DTD.
+
+        This is used for each element declaration in a DTD like::
+
+            <!ELEMENT       name          (...)>
+
+        The purpose of this function is to determine whether this element
+        should be regarded as a string, integer, list, dictionary, structure,
+        or error.
+        """
         if name.upper() == "ERROR":
             self.errors.append(name)
             return
@@ -579,11 +589,14 @@ class DataHandler(object):
             handle.close()
 
     def externalEntityRefHandler(self, context, base, systemId, publicId):
-        """The purpose of this function is to load the DTD locally, instead
+        """Handle external entiry reference in order to cache DTD locally.
+
+        The purpose of this function is to load the DTD locally, instead
         of downloading it from the URL specified in the XML. Using the local
         DTD results in much faster parsing. If the DTD is not found locally,
         we try to download it. If new DTDs become available from NCBI,
-        putting them in Bio/Entrez/DTDs will allow the parser to see them."""
+        putting them in Bio/Entrez/DTDs will allow the parser to see them.
+        """
         urlinfo = _urlparse(systemId)
         # Following attribute requires Python 2.5+
         # if urlinfo.scheme=='http':

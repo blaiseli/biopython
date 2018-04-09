@@ -30,7 +30,7 @@ if sys.platform == "win32":
     # and by default installs to C:\Program Files\NCBI\BLAST-2.2.22+\bin
     # To keep things simple, assume BLAST+ is on the path on Windows.
     #
-    # On Windows the environment variable name isn't case senstive,
+    # On Windows the environment variable name isn't case sensitive,
     # but must split on ";" not ":"
     likely_dirs = os.environ.get("PATH", "").split(";")
 else:
@@ -281,6 +281,10 @@ class CheckCompleteArgList(unittest.TestCase):
         if exe_name in ["deltablast", "psiblast"]:
             # New in BLAST+ 2.3.0 so will look like extra args on older verions
             extra = extra.difference(["-save_each_pssm", "-save_pssm_after_last_round"])
+        # This was added in BLAST+ 2.7.1 (or maybe 2.7.0) to most/all the tools,
+        # so will be seen as an extra argument on older versions:
+        if "-negative_seqidlist" in extra:
+            extra.remove("-negative_seqidlist")
 
         if extra or missing:
             import warnings

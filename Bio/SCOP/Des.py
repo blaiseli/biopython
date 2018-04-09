@@ -4,7 +4,7 @@
 # as part of this package.
 
 
-""" Handle the SCOP DEScription file.
+"""Handle the SCOP DEScription file.
 
 The file format is described in the scop
 "release notes.":http://scop.berkeley.edu/release-notes-1.55.html
@@ -19,7 +19,6 @@ class Record(object):
     """Holds information for one node in the SCOP hierarchy.
 
     Attributes:
-
      - sunid - SCOP unique identifiers
      - nodetype - One of 'cl' (class), 'cf' (fold), 'sf' (superfamily),
        'fa' (family), 'dm' (protein), 'sp' (species), 'px' (domain).
@@ -29,7 +28,9 @@ class Record(object):
      - description - e.g. "All beta proteins","Fibronectin type III",
 
     """
+
     def __init__(self, line=None):
+        """Initialize the class."""
         self.sunid = ''
         self.nodetype = ''
         self.sccs = ''
@@ -39,7 +40,7 @@ class Record(object):
             self._process(line)
 
     def _process(self, line):
-        """Parses DES records.
+        """Parse DES records.
 
         Records consist of 5 tab deliminated fields,
         sunid, node type, sccs, node name, node description.
@@ -76,11 +77,11 @@ class Record(object):
 
 
 def parse(handle):
-    """Iterates over a DES file as a Des record for each line
+    """Iterate over a DES file as a Des record for each line.
 
     Arguments:
-
      - handle - file-like object
+
     """
     for line in handle:
         if line.startswith('#'):

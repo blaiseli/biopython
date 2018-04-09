@@ -154,14 +154,13 @@ class TestSeq(unittest.TestCase):
         self.assertEqual(str(self.s) + "T", str(u))
 
     def test_concatenation_error(self):
-        """Test DNA Seq objects cannot be concatenated with Protein Seq
-        objects"""
+        """DNA Seq objects cannot be concatenated with Protein Seq objects."""
+
         with self.assertRaises(TypeError):
             self.s + Seq.Seq("T", IUPAC.protein)
 
     def test_concatenation_of_ambiguous_and_unambiguous_dna(self):
-        """Test concatenated Seq object with ambiguous and unambiguous DNA
-        returns ambiguous Seq"""
+        """Concatenate Seq object with ambiguous and unambiguous DNA returns ambiguous Seq."""
         t = Seq.Seq("T", IUPAC.ambiguous_dna)
         u = self.s + t
         self.assertEqual("IUPACAmbiguousDNA()", str(u.alphabet))
@@ -681,8 +680,6 @@ class TestMutableSeq(unittest.TestCase):
             seq.reverse_complement()
 
     def test_to_string_method(self):
-        """This method is currently deprecated, probably will need to remove
-        this test soon"""
         with self.assertWarns(BiopythonWarning):
             self.mutable_s.tostring()
 
@@ -940,8 +937,10 @@ class TestDoubleReverseComplement(unittest.TestCase):
 
 class TestSequenceAlphabets(unittest.TestCase):
     def test_sequence_alphabets(self):
-        """Sanity test on the test sequence alphabets (see also enhancement
-        bug 2597)"""
+        """Sanity test on the test sequence alphabets.
+
+        See also enhancement bug 2597.
+        """
         for nucleotide_seq in test_seqs:
             if "U" in str(nucleotide_seq).upper():
                 self.assertNotIsInstance(nucleotide_seq.alphabet,
@@ -1274,6 +1273,24 @@ class TestTranslating(unittest.TestCase):
         seq = "GCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG"  # no start codon
         with self.assertRaises(TranslationError):
             Seq.translate(seq, table=2, cds=True)
+
+    def test_translation_using_tables_with_ambiguous_stop_codons(self):
+        """Check for error and warning messages.
+
+        Here, 'ambiguous stop codons' means codons of unambiguous sequence
+        but with a context sensitive encoding as STOP or an amino acid.
+        Thus, these codons appear within the codon table in the forward
+        table as well as in the list of stop codons.
+        """
+        seq = "ATGGGCTGA"
+        with self.assertRaises(ValueError):
+            Seq.translate(seq, table=28, to_stop=True)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            Seq.translate(seq, table=28)
+            message = str(w[-1].message)
+            self.assertTrue(message.startswith("This table contains"))
+            self.assertTrue(message.endswith("be translated as amino acid."))
 
 
 class TestStopCodons(unittest.TestCase):

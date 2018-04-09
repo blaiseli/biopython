@@ -103,6 +103,7 @@ class Motif(motifs.Motif):
         """Return the hash key corresponding to the JASPAR profile.
 
         :note: We assume the unicity of matrix IDs
+
         """
         return self.matrix_id.__hash__()
 
@@ -114,12 +115,12 @@ class Record(list):
     """Represent a list of jaspar motifs.
 
     Attributes:
-
      - version: The JASPAR version used
 
     """
 
     def __init__(self):
+        """Initialize the class."""
         self.version = None
 
     def __str__(self):
@@ -341,7 +342,7 @@ def calculate_pseudocounts(motif):
 
 
 def split_jaspar_id(id):
-    """Utility function to split a JASPAR matrix ID into its component.
+    """Split a JASPAR matrix ID into its component.
 
     Components are base ID and version number, e.g. 'MA0047.2' is returned as
     ('MA0047', 2).

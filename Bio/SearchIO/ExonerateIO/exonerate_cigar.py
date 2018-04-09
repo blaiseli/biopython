@@ -25,7 +25,6 @@ _RE_CIGAR = re.compile(r"""^cigar:\s+
 
 
 class ExonerateCigarParser(_BaseExonerateParser):
-
     """Parser for Exonerate cigar strings."""
 
     _ALN_MARK = 'cigar'
@@ -85,14 +84,13 @@ class ExonerateCigarParser(_BaseExonerateParser):
 
 
 class ExonerateCigarIndexer(ExonerateVulgarIndexer):
-
     """Indexer class for exonerate cigar lines."""
 
     _parser = ExonerateCigarParser
     _query_mark = b"cigar"
 
     def get_qresult_id(self, pos):
-        """Returns the query ID of the nearest cigar line."""
+        """Return the query ID of the nearest cigar line."""
         handle = self._handle
         handle.seek(pos)
         # get line, check if it's a vulgar line, and get query ID

@@ -28,13 +28,14 @@ class FSSPAlign(MultipleSeqAlignment):
 
 class FSSPMultAlign(dict):
     def __init__(self):
+        """Initialize the class."""
         self.abs_res = []
         self.pdb_res = []
         self.data = {}
 
 
 def mult_align(sum_dict, align_dict):
-    """Returns a biopython multiple alignment instance (MultipleSeqAlignment)"""
+    """Return multiple alignment instance (MultipleSeqAlignment)."""
     mult_align_dict = {}
     for j in align_dict.abs(1).pos_align_dict:
         mult_align_dict[j] = ''
@@ -60,8 +61,11 @@ def mult_align(sum_dict, align_dict):
 
 
 def filter(sum_dict, align_dict, filter_attribute, low_bound, high_bound):
-    """Filters a passed summary section and alignment section according to a numeric
-    attribute in the summary section. Returns new summary and alignment sections"""
+    """Filter a passed summary section and alignment section.
+
+    Filter according to a numeric attribute in the summary section.
+    Return new summary and alignment sections.
+    """
     new_sum_dict = FSSP.FSSPSumDict()
     new_align_dict = copy.deepcopy(align_dict)
 #    for i in align_dict:
@@ -81,8 +85,11 @@ def filter(sum_dict, align_dict, filter_attribute, low_bound, high_bound):
 
 
 def name_filter(sum_dict, align_dict, name_list):
-    """Accepts a list of names. Returns a new Summary block and Alignment block which
-    contain the info only for those names passed."""
+    """Filter summary and alignment blocks for given names only.
+
+    Accepts a list of names. Returns a new Summary block and Alignment block which
+    contain the info only for those names passed.
+    """
     new_sum_dict = FSSP.FSSPSumDict()
     new_align_dict = copy.deepcopy(align_dict)
     for cur_pdb_name in name_list:

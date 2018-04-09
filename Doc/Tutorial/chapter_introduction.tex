@@ -123,6 +123,41 @@ and HTML formats
   The correct capitalization is ``Biopython'', not ``BioPython'' (even though
   that would have matched BioPerl, BioJava and BioRuby).
 
+  \item \emph{How is the Biopython software licensed?} \\
+  Biopython is distributed under the \emph{Biopython License Agreement}.
+  However, since the release of Biopython 1.69, some files are explicitly
+  dual licensed under your choice of the \emph{Biopython License Agreement}
+  or the \emph{BSD 3-Clause License}. This is with the intention of later
+  offering all of Biopython under this dual licensing approach.
+
+  \item \emph{What is the Biopython logo and how is it licensed?} \\
+  As of July 2017 and the Biopython 1.70 release, the Biopython logo is a
+  yellow and blue snake forming a double helix above the word ``biopython''
+  in lower case. It was designed by Patrick Kunzmann and this logo is dual
+  licensed under your choice of the \emph{Biopython License Agreement} or
+  the \emph{BSD 3-Clause License}.
+
+\begin{latexonly}
+  \includegraphics[width=6cm]{images/biopython_logo.pdf}\\
+\end{latexonly}
+\begin{rawhtml}
+  <IMG ALIGN="center" SRC="images/biopython_logo.svg" TITLE="Biopython Logo (2017 onwards)" ALT="[New Biopython Logo]" width="300" height="200" />
+  <IMG ALIGN="center" SRC="images/biopython_logo_old.jpg" TITLE="Old Biopython Logo (2003-2017)" ALT="[Old Biopython Logo]" width="512" height="144" />
+\end{rawhtml}
+
+  Prior to this, the Biopython logo was two yellow snakes forming a double
+  helix around the word ``BIOPYTHON'', designed by Henrik Vestergaard and
+  Thomas Hamelryck in 2003 as part of an open competition.
+
+\begin{latexonly}
+  \includegraphics[width=7cm]{images/biopython_logo_old.jpg}\\
+\end{latexonly}
+
+  \item \emph{Do you have a change-log listing what's new in each release?} \\
+  See the file \verb|NEWS.rst| included with the source code (originally called
+  just \verb|NEWS|), or read the
+  \href{https://github.com/biopython/biopython/blob/master/NEWS.rst}{latest NEWS file on GitHub}.
+
   \item \emph{What is going wrong with my print commands?} \\
   This tutorial now uses the Python 3 style print \emph{function}.
   As of Biopython 1.62, we support both Python 2 and Python 3.
@@ -172,7 +207,7 @@ from __future__ import print_function
   If the version string ends with a plus like ``\verb|1.66+|'', you
   don't have an official release, but an old snapshot of the in
   development code \emph{after} that version was released. This naming
-  was used until June 2016 in the run-up to Biopython 1.68..
+  was used until June 2016 in the run-up to Biopython 1.68.
 
   If the version string ends with ``\verb|.dev<number>|'' like
   ``\verb|1.68.dev0|'', again you don't have an official release,
@@ -275,9 +310,8 @@ from __future__ import print_function
   In late September 2009, just after the release of Biopython 1.52, we switched from using CVS to git, a distributed version control system. The old CVS server will remain available as a static and read only backup, but if you want to grab the latest code, you'll need to use git instead. See our website for more details.
 
   \item \emph{Why doesn't} \verb|Bio.Fasta| \emph{work?} \\
-  We deprecated the \verb|Bio.Fasta| module in Biopython 1.51 (August 2009) and removed it in Biopython 1.55 (August 2010). There is a brief example showing how to convert old code to use \verb|Bio.SeqIO| instead in the \href{http://biopython.org/SRC/biopython/DEPRECATED}{DEPRECATED} file.
+  We deprecated the \verb|Bio.Fasta| module in Biopython 1.51 (August 2009) and removed it in Biopython 1.55 (August 2010). There is a brief example showing how to convert old code to use \verb|Bio.SeqIO| instead in the \href{https://github.com/biopython/biopython/blob/master/DEPRECATED.rst}{DEPRECATED.rst} file.
 
 \end{enumerate}
 
 \noindent For more general questions, the Python FAQ pages \url{http://www.python.org/doc/faq/} may be useful.
-

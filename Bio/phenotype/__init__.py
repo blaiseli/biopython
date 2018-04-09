@@ -95,7 +95,6 @@ from . import phen_micro
 
 import warnings
 
-__docformat__ = "epytext en"  # not just plaintext
 
 warnings.warn('Bio.phenotype is an experimental submodule which may undergo '
         'significant changes prior to its future official release.',
@@ -150,7 +149,7 @@ def write(plates, handle, format):
 
 
 def parse(handle, format):
-    """Turns a phenotype file into an iterator returning PlateRecords.
+    """Turn a phenotype file into an iterator returning PlateRecords.
 
      - handle   - handle to the file, or the filename as a string
                   (note older versions of Biopython only took a handle).
@@ -191,7 +190,7 @@ def parse(handle, format):
 
 
 def read(handle, format):
-    """Turns a phenotype file into a single PlateRecord.
+    """Turn a phenotype file into a single PlateRecord.
 
      - handle   - handle to the file, or the filename as a string
                   (note older versions of Biopython only took a handle).
